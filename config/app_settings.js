@@ -1,0 +1,31 @@
+module.exports={ 
+    OTP_LENGTH : "6",
+    USER_ID_LENGTH : "6",
+    SALT_ROUNDS: 10,
+    CLIENT_ID_LENGTH: "8",
+// SMTP DETAILS FOR SENDING EMAILS;
+    SMTP_SERVICE: 'smtp.office365.com',
+    SMTP_EMAIL: 'noreply@talencred.com',
+    SMTP_PASSWORD: "Escale2TC-2024",
+    // SMTP_PASSWORD: "Talent#124",
+
+    SMS_PLATFORM: "twilio",
+    
+
+    TWILIO_ACCOUNT_SID: "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    TWILIO_AUTH_TOKEN: "your_auth_token",
+    TWILIO_MOBILE_NO: "7078396011",
+
+//  TWILIO DEATILS FOR SEND MOBILE OTP TO USERS
+    
+    MSG91_ACCOUNT_SID: "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    MSG91_AUTH_TOKEN: "your_auth_token",
+    MSG91_MOBILE_NO: "7078396011",
+
+    // token  session timeout
+
+    TOKEN_ADMIN_VALIDITY: "24h",
+    TOKEN_CUSTOMER_VALIDITY: "360h",
+    
+    
+};

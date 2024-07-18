@@ -1,0 +1,422 @@
+const { DELETE } = require("./constant");
+
+module.exports = {
+    //LOGIN METHODS
+    TOKEN:{
+        GENERATED: "jwt_token_generated",
+        DECODED: "jwt_token_decoded",
+        EXPIRED: "jwt_token_expired"
+    },
+
+    SLUGIFY: "slugify",
+
+
+    JOB : {
+        CREATE: "Job created successfully",
+        UPDATE: "Job updated successfully",
+        DELETE: "Job deleted successfully",
+        VIEW: "Viewing specific job details",
+        LIST: "Jobs fetched successfully",
+       
+
+    },
+
+    ADDRESS : {
+        CREATE: "address created successfully",
+        UPDATE: "address updated successfully",
+        DELETE: "address deleted successfully",
+        VIEW: "Viewing specific address details",
+        LIST: "Address fetched successfully"
+    },
+
+    ADMIN : {
+        CREATE: "admin created successfully",
+        UPDATE: "admin updated successfully",
+        DELETE: "admin deleted successfully",
+        VIEW: "Viewing specific admin details",
+        LIST: "Admins fetched successfully"
+    },
+
+    BLOG : {
+        CREATE: "blog created successfully",
+        UPDATE: "blog updated successfully",
+        DELETE: "blog deleted successfully",
+        VIEW: "Viewing specific blog details",
+        LIST: "Blogs fetched successfully"
+    },
+
+
+    BLOG_CATEGORY : {
+        CREATE: "blog_category created successfully",
+        UPDATE: "blog_category updated successfully",
+        DELETE: "blog_category deleted successfully",
+        VIEW: "Viewing specific blog_category details",
+        LIST: "Blog_Category fetched successfully"
+    },
+
+
+    CATEGORY : {
+        CREATE: "category created successfully",
+        UPDATE: "category updated successfully",
+        DELETE: "category deleted successfully",
+        VIEW: "Viewing specific category details",
+        LIST: "Listing all categories"
+    },
+
+
+    CHAT : {
+        CREATE: "chat created successfully",
+        UPDATE: "chat updated successfully",
+        DELETE: "chat deleted successfully",
+        VIEW: "Viewing specific chat details",
+        LIST: "Listing all chats"
+    },
+
+
+    CITY : {
+        CREATE: "city created successfully",
+        UPDATE: "city updated successfully",
+        DELETE: "city deleted successfully",
+        VIEW: "Viewing specific city details",
+        LIST: "Listing all cities"
+    },
+
+
+    CLIENT : {
+        CREATE: "client created successfully",
+        UPDATE: "client updated successfully",
+        DELETE: "client deleted successfully",
+        VIEW: "Viewing specific client details",
+        LIST: "Listing all clients"
+    },
+
+
+    CLIENT_DESIGNATION : {
+        CREATE: "client_designation created successfully",
+        UPDATE: "client_designation updated successfully",
+        DELETE: "client_designation deleted successfully",
+        VIEW: "Viewing specific client_designation details",
+        LIST: "Listing all client_designation"
+    },
+
+
+    CONTACT_US : {
+        CREATE: "contact_us created successfully",
+        UPDATE: "contact_us updated successfully",
+        DELETE: "contact_us deleted successfully",
+        VIEW: "Viewing specific contact_us details",
+        LIST: "Listing all contact_us"
+    },
+
+    INVESTOR_CONTACT_US : {
+        CREATE: "investor_contact_us created successfully",
+        UPDATE: "investor_contact_us updated successfully",
+        DELETE: "investor_contact_us deleted successfully",
+        VIEW: "Viewing specific investor_contact_us details",
+        LIST: "Listing all investor_contact_us"
+    },
+
+
+    COUNTRY : {
+        CREATE: "country created successfully",
+        UPDATE: "country updated successfully",
+        DELETE: "country deleted successfully",
+        VIEW: "Viewing specific country details",
+        LIST: "Listing all countries"
+    },
+
+
+    CURRENCY : {
+        CREATE: "currency created successfully",
+        UPDATE: "currency updated successfully",
+        DELETE: "currency deleted successfully",
+        VIEW: "Viewing specific currency details",
+        LIST: "Listing all currencies"
+    },
+
+
+    DEGREE : {
+        CREATE: "degree created successfully",
+        UPDATE: "degree updated successfully",
+        DELETE: "degree deleted successfully",
+        VIEW: "Viewing specific degree details",
+        LIST: "Listing all degree"
+    },
+
+
+    DELIVERABLE : {
+        CREATE: "deliverable created successfully",
+        UPDATE: "deliverable updated successfully",
+        DELETE: "deliverable deleted successfully",
+        VIEW: "Viewing specific deliverable details",
+        LIST: "Listing all deliverables"
+    },
+
+
+    DELIVERABLE_VALUE : {
+        CREATE: "deliverable_value created successfully",
+        UPDATE: "deliverable_value updated successfully",
+        DELETE: "deliverable_value deleted successfully",
+        VIEW: "Viewing specific deliverable_value details",
+        LIST: "Listing all deliverable_value"
+    },
+
+
+    DESIGNATION : {
+        CREATE: "designation created successfully",
+        UPDATE: "designation updated successfully",
+        DELETE: "designation deleted successfully",
+        VIEW: "Viewing specific designation details",
+        LIST: "Listing all designation"
+    },
+
+
+    DOMAIN : {
+        CREATE: "domain created successfully",
+        UPDATE: "domain updated successfully",
+        DELETE: "domain deleted successfully",
+        VIEW: "Viewing specific domain details",
+        LIST: "Listing all domain"
+    },
+
+
+    EXPERIENCE : {
+        CREATE: "experience created successfully",
+        UPDATE: "experience updated successfully",
+        DELETE: "experience deleted successfully",
+        VIEW: "Viewing specific experience details",
+        LIST: "Listing all experience"
+    },
+
+
+    HELP_AND_SUPPORT_CATEGORY : {
+        CREATE: "help_and_support_category created successfully",
+        UPDATE: "help_and_support_category updated successfully",
+        DELETE: "help_and_support_category deleted successfully",
+        VIEW: "Viewing specific help_and_support_category details",
+        LIST: "Listing all help_and_support_category"
+    },
+
+
+    HELP_SUPPORT : {
+        CREATE: "help_support created successfully",
+        UPDATE: "help_support updated successfully",
+        DELETE: "help_support deleted successfully",
+        VIEW: "Viewing specific help_support details",
+        LIST: "Listing all help_support"
+    },
+
+
+    INDUSTRY : {
+        CREATE: "industry created successfully",
+        UPDATE: "industry updated successfully",
+        DELETE: "industry deleted successfully",
+        VIEW: "Viewing specific industry details",
+        LIST: "Listing all industry"
+    },
+
+
+    JOB_TITLE : {
+        CREATE: "Job_title created successfully",
+        UPDATE: "Job_title updated successfully",
+        DELETE: "Job_title deleted successfully",
+        VIEW: "Viewing specific Job_title details",
+        LIST: "Listing all Job_title"
+    },
+
+
+    LOCATION : {
+        CREATE: "location created successfully",
+        UPDATE: "location updated successfully",
+        DELETE: "location deleted successfully",
+        VIEW: "Viewing specific location details",
+        LIST: "Listing all location"
+    },
+
+
+    LEAD : {
+        CREATE: "lead created successfully",
+        UPDATE: "lead updated successfully",
+        DELETE: "lead deleted successfully",
+        VIEW: "Viewing specific lead details",
+        LIST: "Listing all lead"
+    },
+
+
+    MESSAGE : {
+        CREATE: "message created successfully",
+        UPDATE: "message updated successfully",
+        DELETE: "message deleted successfully",
+        VIEW: "Viewing specific message details",
+        LIST: "Listing all message"
+    },
+
+
+    PAYMENT_DETAILS : {
+        CREATE: "payment_details created successfully",
+        UPDATE: "payment_details updated successfully",
+        DELETE: "payment_details deleted successfully",
+        VIEW: "Viewing specific payment_details details",
+        LIST: "Listing all payment_details"
+    },
+
+
+    PRODUCT : {
+        CREATE: "product created successfully",
+        UPDATE: "product updated successfully",
+        DELETE: "product deleted successfully",
+        VIEW: "Viewing specific product details",
+        LIST: "Listing all products"
+    },
+
+
+    PROPOSAL : {
+        CREATE: "proposals created successfully",
+        UPDATE: "proposals updated successfully",
+        DELETE: "proposals deleted successfully",
+        VIEW: "Viewing specific proposals details",
+        LIST: "Listing all proposals"
+    },
+
+
+    RATING : {
+        CREATE: "rating created successfully",
+        UPDATE: "rating updated successfully",
+        DELETE: "rating deleted successfully",
+        VIEW: "Viewing specific rating details",
+        LIST: "Listing all ratings"
+    },
+
+
+    REASON : {
+        CREATE: "reason created successfully",
+        UPDATE: "reason updated successfully",
+        DELETE: "reason deleted successfully",
+        VIEW: "Viewing specific reason details",
+        LIST: "Listing all reasons"
+    },
+
+
+    REJECTION : {
+        CREATE: "rejection created successfully",
+        UPDATE: "rejection updated successfully",
+        DELETE: "rejection deleted successfully",
+        VIEW: "Viewing specific rejection details",
+        LIST: "Listing all rejections"
+    },
+
+
+
+    REPORTING : {
+        CREATE: "reporting created successfully",
+        UPDATE: "reporting updated successfully",
+        DELETE: "reporting deleted successfully",
+        VIEW: "Viewing specific reporting details",
+        LIST: "Listing all reporting"
+    },
+
+
+
+    REPORT_JOB : {
+        CREATE: "report_job created successfully",
+        UPDATE: "report_job updated successfully",
+        DELETE: "report_job deleted successfully",
+        VIEW: "Viewing specific report_job details",
+        LIST: "Listing all report_job"
+    },
+
+
+
+    ROLE : {
+        CREATE: "role created successfully",
+        UPDATE: "role updated successfully",
+        DELETE: "role deleted successfully",
+        VIEW: "Viewing specific role details",
+        LIST: "Listing all roles"
+    },
+
+
+
+    SERVICE_CATEGORY : {
+        CREATE: "service_category created successfully",
+        UPDATE: "service_category updated successfully",
+        DELETE: "service_category deleted successfully",
+        VIEW: "Viewing specific service_category details",
+        LIST: "Listing all service_categories"
+    },
+
+
+    SERVICES : {
+        CREATE: "services created successfully",
+        UPDATE: "services updated successfully",
+        DELETE: "services deleted successfully",
+        VIEW: "Viewing specific services details",
+        LIST: "Listing all services"
+    },
+
+
+    SKILLS : {
+        CREATE: "skills created successfully",
+        UPDATE: "skills updated successfully",
+        DELETE: "skills deleted successfully",
+        VIEW: "Viewing specific skills details",
+        LIST: "Listing all skills"
+    },
+
+
+
+    STATE : {
+        CREATE: "state created successfully",
+        UPDATE: "state updated successfully",
+        DELETE: "state deleted successfully",
+        VIEW: "Viewing specific state details",
+        LIST: "Listing all states"
+    },
+
+
+
+    USER : {
+        CREATE: "user created successfully",
+        UPDATE: "user updated successfully",
+        DELETE: "user deleted successfully",
+        VIEW: "Viewing specific user details",
+        LIST: "Listing all users"
+    },
+
+
+    VACANCIES : {
+        CREATE: "vacancies created successfully",
+        UPDATE: "vacancies updated successfully",
+        DELETE: "vacancies deleted successfully",
+        VIEW: "Viewing specific vacancies details",
+        LIST: "Listing all vacancies"
+    },
+
+
+    WORKDIARY : {
+        CREATE: "workdiary created successfully",
+        UPDATE: "workdiary updated successfully",
+        DELETE: "workdiary deleted successfully",
+        VIEW: "Viewing specific workdiary details",
+        LIST: "Listing all workdiary"
+    },
+
+
+    UPLOAD_IMAGE : {
+        CREATE: "upload_image created successfully",
+        UPDATE: "upload_image updated successfully",
+        DELETE: "upload_image deleted successfully",
+        VIEW: "Viewing specific upload_image details",
+        LIST: "Listing all upload_image"
+    },
+
+    ENQUIRY : {
+        CREATE: "enquiry created successfully",
+        UPDATE: "enquiry updated successfully",
+        DELETE: "enquiry deleted successfully",
+        VIEW: "Viewing specific enquiry details",
+        LIST: "Listing all enquiry"
+    },
+
+
+}
