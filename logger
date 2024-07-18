@@ -1,0 +1,52 @@
+'use strict'
+ 
+const log4js = require('log4js');
+ 
+log4js.configure({
+    // appenders: {
+    //     debug: {
+    //         type: 'file',
+    //         filename: 'logs/debug/debug.log',
+    //         category: 'debug',
+    //         maxLogSize: 20000,
+    //         backups: 100
+    //     },
+
+        appenders: {
+            debug: {
+              type: 'file',
+              filename: 'logs/debug/debug-yyyy-MM-dd.log', // Use pattern for date
+              pattern: '.yyyy-MM-dd', 
+              alwaysIncludePattern: true, 
+              category: 'debug',
+              maxLogSize: 20000,
+              backups: 100
+            },
+          
+        info: {
+            type: "file",
+            filename: "logs/info/info.log",
+            category: 'info',
+            maxLogSize: 20000,
+            backups: 100
+ 
+        },
+        error: {
+            type: 'file',
+            filename: "logs/error/error.log",
+            category: 'error',
+            maxLogSize: 20000,
+            backups: 100
+        },
+ 
+    },
+    categories: {
+        default: {
+            appenders: ['debug'],
+            level: 'debug'
+        }
+    }
+});
+ 
+const logger = log4js.getLogger('debug');
+module.exports = logger;

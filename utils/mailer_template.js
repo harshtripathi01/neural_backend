@@ -3,13 +3,7 @@ const login = require("../config/mailer_template/login.js");
 const resend = require("../config/mailer_template/resendotp.js");
 const forget = require("../config/mailer_template/resetPassword.js")
 const logger = require("../logger");
-const member_invite = require("../config/mailer_template/member_invite.js");
-const change = require("../config/mailer_template/changePassword.js");
 const verifyotp = require("../config/mailer_template/verifyotp.js");
-const clientSignup = require("../config/mailer_template/clientSignup.js");
-const clientLoginVerifyOTP = require("../config/mailer_template/clientLoginVerifyOTP.js");
-const clientLogin = require("../config/mailer_template/clientLogin.js");
-const clientResendOtp = require("../config/mailer_template/clientResendOtp.js");
 
 function signUpBody(newUser) {
   const mail_body = signup.SIGNUP_TEMPLATE.replace(

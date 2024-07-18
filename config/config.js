@@ -1,6 +1,13 @@
 module.exports = {
-    dbUrl: process.env.DB_URL || "mongodb://localhost:27017/talencrud",
-    appPort: process.env.APP_PORT || 9005,
+  development: {
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    dialect: 'postgres',
+  },
+    dbUrl: process.env.DB_URL || "mongodb://localhost:27017/neural",
+    appPort: process.env.APP_PORT || 3000,
     secretKey: 'talencrud',
     RAZORPAY_ID_KEY:"rzp_live_FXHxWz6v1BkDyx",
     RAZORPAY_SECRET_KEY:"7DDORxTVlYlZ9yzORGi0zJBO",

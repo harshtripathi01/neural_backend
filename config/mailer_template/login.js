@@ -1,5 +1,5 @@
 module.exports = {
-    LOGIN_SUBJECT: "Welcome to TalenCred!",
+    LOGIN_SUBJECT: "Welcome to neural!",
     LOGIN_TEMPLATE: `<tbody>
     <tr>
         <td>
@@ -19,9 +19,9 @@ module.exports = {
                                                         <tr>
                                                             <td align="center"
                                                                 style="padding-top: 0; padding-bottom: 20px; padding-left: 30px">
-                                                                <a href="https://talencred.com/" data-linkindex="0">
-                                                                    <img src="https://talencred.com/images/logo.svg"
-                                                                        alt="TalenCred" width="124" height="40"
+                                                                <a href="https://neural.com/" data-linkindex="0">
+                                                                    <img src="https://neural.com/images/logo.svg"
+                                                                        alt="neural" width="124" height="40"
                                                                         style="vertical-align: middle">
                                                                 </a>
                                                             </td>
@@ -42,7 +42,7 @@ module.exports = {
                                                         <tr>
                                                             <td class="x_card-row"
                                                                 style="font-family:Helvetica,Arial,sans-serif; font-size:16px; line-height:24px; word-break:break-word; padding-left:20px; padding-right:20px; padding-top:20px; margin-left:px; margin-right:px">
-                                                                We're thrilled to have you on TalenCred - where highly skilled experts get matched with innovative projects!
+                                                                We're thrilled to have you on neural - where highly skilled experts get matched with innovative projects!
                                                             </td>
                                                         </tr>
 
@@ -70,7 +70,7 @@ module.exports = {
                                                         <tr>
                                                             <td class="x_card-row"
                                                                 style="font-family:Helvetica,Arial,sans-serif; font-size:16px; line-height:24px; word-break:break-word; padding-left:20px; padding-right:20px; padding-top:20px; margin-left:px; margin-right:px">
-                                                                Choose TalenCred and unlock a world of
+                                                                Choose neural and unlock a world of
                                                                 opportunities!
                                                             </td>
                                                         </tr>
@@ -85,7 +85,7 @@ module.exports = {
                                                         <tr>
                                                             <td class="x_card-row"
                                                                 style="font-family:Helvetica,Arial,sans-serif; font-size:16px; line-height:24px; word-break:break-word; padding-left:20px; padding-right:20px; padding-top:0px; margin-left:px; margin-right:px">
-                                                                TalenCred Team
+                                                                neural Team
                                                             </td>
                                                         </tr>
 
@@ -105,12 +105,12 @@ module.exports = {
                         <tr>
                             <td align="center" width="100%"
                                 style="color:#65735B; font-size:12px; line-height:24px; padding-bottom:30px; padding-top:30px">
-                                <a href="https://talencred.com/privacy-policy" target="_blank"
+                                <a href="https://neural.com/privacy-policy" target="_blank"
                                     rel="noopener noreferrer" data-auth="NotApplicable"
                                     style="color:#65735B; text-decoration:underline" data-linkindex="2">Privacy
                                     Policy</a>
                                 &nbsp; | &nbsp;
-                                <a href="https://talencred.com/terms-services" target="_blank"
+                                <a href="https://neural.com/terms-services" target="_blank"
                                     rel="noopener noreferrer" data-auth="NotApplicable"
                                     style="color:#65735B; text-decoration:underline" data-linkindex="3">Terms &
                                     Condition</a>
@@ -119,7 +119,7 @@ module.exports = {
                                     E-1, 9/100, Sector -3, Rajendra Nagar, Sahibabad, Ghaziabad, U.P.- 201005 </div>
                                 <div
                                     style="font-family: Helvetica, Arial, sans-serif, serif, EmojiFont; word-break: normal;">
-                                    © 2024 TalenCred International LLP, All rights reserved. </div>
+                                    © 2024 neural International LLP, All rights reserved. </div>
 
                             </td>
                         </tr>

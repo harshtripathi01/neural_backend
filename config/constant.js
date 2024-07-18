@@ -2,9 +2,7 @@ module.exports = {
     //LOGIN METHODS
     WEBSITE_URL:{
         LOCAL:"http://localhost:3000/",
-        DEV:"https://dev.talencred.com/",
-        STAGING:"https://beta.talencred.com/",
-        LIVE:"https://talencred.com/"
+        
     },
     EMAIL:"email",
     MOBILE: "mobile",

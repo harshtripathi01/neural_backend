@@ -5,8 +5,8 @@ module.exports={
     CLIENT_ID_LENGTH: "8",
 // SMTP DETAILS FOR SENDING EMAILS;
     SMTP_SERVICE: 'smtp.office365.com',
-    SMTP_EMAIL: 'noreply@talencred.com',
-    SMTP_PASSWORD: "Escale2TC-2024",
+    SMTP_EMAIL: 'noreply@nural.com',
+    SMTP_PASSWORD: "neural2TC-2024",
     // SMTP_PASSWORD: "Talent#124",
 
     SMS_PLATFORM: "twilio",
