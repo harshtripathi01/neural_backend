@@ -283,10 +283,7 @@ const signupWithEmail = async (data) => {
       firstName,
       lastName,
       userType,
-      parentCompany,
-      professionalInfo,
       mobile_number,
-      gst_verified
     } = data || {};
 
     if (!email) {
@@ -365,19 +362,14 @@ const signupWithEmail = async (data) => {
     const newUser = new User({
       user_id,
       firstName,
-      lastName,
       email: email.toLowerCase(),
       password: hashedPassword,
       otp,
       userType,
       country,
-      parentCompany,
-      professionalInfo,
-      status: "pending",
       "entity.urlSlug": urlSlug, // Assign the generated URL slug
       otpGeneratedAt,
       mobile_number,
-      gst_verified
     });
 
     const mail_body = mailer_template.signUpBody(newUser);
