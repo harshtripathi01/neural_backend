@@ -372,6 +372,7 @@ const signupWithEmail = async (data) => {
       mobile_number,
     });
 
+    
     const mail_body = mailer_template.signUpBody(newUser);
     const mail_subject = mailer_template.signUpSubject();
     sendemail(email, mail_subject, mail_body);
