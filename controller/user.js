@@ -880,17 +880,7 @@ const updateUser = async (request, response) => {
     let user;
     if (mongoose.Types.ObjectId.isValid(identifier)) {
       // Update user by Id
-      user = await User.findById(identifier).populate([
-        { path: "educationalInfo.degreeName" },
-        { path: "portfolio.skillAndDeliverables" },
-        { path: "charges.currency" },
-        { path: "resourceInfo.designation" },
-        { path: "skillInfo.skill" },
-        { path: "services.category" },
-        { path: "services.services" },
-        { path: "professionalInfo.jobTitle" },
-        { path: "country" },
-      ]);
+      user = await User.findById(identifier)
     } else {
       // Update user by Slug
       user = await User.findOne({ "entity.urlSlug": identifier }).populate([
@@ -1015,83 +1005,11 @@ const getUserById = async (request, response) => {
     if (mongoose.Types.ObjectId.isValid(identifier)) {
       //get user by Id
       user = await User.findById(identifier)
-        .populate({
-          path: "professionalInfo.jobTitle",
-          model: "Designation",
-        })
-        .populate({
-          path: "educationalInfo.degreeName",
-          model: "Degree",
-        })
-        .populate({
-          path: "portfolio.skillAndDeliverables",
-          model: "Skills",
-        })
-        .populate({
-          path: "charges.currency",
-          model: "Currency",
-        })
-        .populate({
-          path: "skillInfo.skill",
-          model: "Skills",
-        })
-        .populate({
-          path: "services.category",
-          model: "ServiceCategory",
-        })
-        .populate({
-          path: "services.services",
-          model: "Services",
-        })
-        .populate({
-          path: "resourceInfo.designation",
-          model: "Designation",
-        })
-        .populate({
-          path: "country",
-          model: "Country",
-        })
-        .exec();
+       
     } else {
       //get user by Slug
       user = await User.findOne({ "entity.urlSlug": identifier })
-        .populate({
-          path: "professionalInfo.jobTitle",
-          model: "Designation",
-        })
-        .populate({
-          path: "educationalInfo.degreeName",
-          model: "Degree",
-        })
-        .populate({
-          path: "portfolio.skillAndDeliverables",
-          model: "Skills",
-        })
-        .populate({
-          path: "charges.currency",
-          model: "Currency",
-        })
-        .populate({
-          path: "skillInfo.skill",
-          model: "Skills",
-        })
-        .populate({
-          path: "services.category",
-          model: "ServiceCategory",
-        })
-        .populate({
-          path: "services.services",
-          model: "Services",
-        })
-        .populate({
-          path: "resourceInfo.designation",
-          model: "Designation",
-        })
-        .populate({
-          path: "country",
-          model: "Country",
-        })
-        .exec();
+       
     }
 
     if (!user) {
