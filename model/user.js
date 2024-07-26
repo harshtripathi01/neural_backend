@@ -79,4 +79,9 @@ User.init({
   timestamps: true // Add timestamps (createdAt and updatedAt)
 });
 
+// User.associate = function(models) {
+//   User.belongsToMany(models.Chat, { through: 'ChatUsers' });
+//   User.hasMany(models.Message, { foreignKey: 'senderId' });
+// };
+
 module.exports = User;
