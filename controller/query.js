@@ -1,7 +1,7 @@
 // controllers/queryController.js
 
-const Query = require('../model/Query');
-const User = require('../model/User');
+const Query = require('../model/query.js');
+const User = require('../model/user.js');
 
 // Create a new query
 exports.createQuery = async (req, res) => {

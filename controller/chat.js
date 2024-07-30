@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { Chat, User, Message } = require('../models');
+const Chat = require('../model/chat.js');
+const User = require('../model/user.js');
 const jwt = require('jsonwebtoken');
 
 const createChat = async (req, res) => {

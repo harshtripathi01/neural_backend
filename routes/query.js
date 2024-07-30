@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const queryController = require('../controllers/queryController');
+const queryController = require('../controller/query.js');
 
 // Create a new query
 router.post('/queries', queryController.createQuery);

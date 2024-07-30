@@ -5,14 +5,22 @@ const socketio = require('socket.io');
 const { Sequelize, DataTypes } = require('sequelize');
 const app = require("./app");
 
-
+const queryRoutes = require('./routes/query.js');
+const ratingRoutes = require('./routes/rating.js');
+const chatRoutes = require('./routes/chat.js');
+const messageRoutes = require('./routes/message.js');
+const { User, Query, Rating } = require('./association.js');
 // Sync the models with the database
 // Sequelize.sync({ alter: true })
 //   .then(() => console.log('Models synced with PostgreSQL'))
 //   .catch(err => console.error('Error syncing models:', err));
 
 // Create HTTP server using Express app
-
+// Use the query and rating routes
+app.use('/api', queryRoutes);
+app.use('/api', ratingRoutes);
+app.use('/api',chatRoutes);
+app.use('/api',messageRoutes);
 const server = http.createServer(app);
 
 // Initialize socket.io

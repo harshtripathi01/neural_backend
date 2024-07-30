@@ -1,4 +1,7 @@
-const { Chat, Message, User } = require('../models');
+const Chat = require('../model/chat.js');
+const User = require('../model/user.js');
+const Message = require('../model/message.js');
+
 const jwt = require('jsonwebtoken');
 
 const allMessages = async (req, res) => {
