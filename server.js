@@ -5,90 +5,11 @@ const socketio = require('socket.io');
 const { Sequelize, DataTypes } = require('sequelize');
 const app = require("./app");
 
-// Initialize Sequelize for PostgreSQL
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-  host: process.env.DB_HOST,
-  dialect: 'postgres'
-});
-
-sequelize.authenticate()
-  .then(() => console.log('Connected to PostgreSQL'))
-  .catch(err => console.error('Error connecting to PostgreSQL:', err));
-
-// Define User model
-const User = sequelize.define('User', {
-  firstName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
-  }
-}, {
-  timestamps: true
-});
-
-// Define Chat model
-const Chat = sequelize.define('Chat', {
-  chatName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    trim: true,
-  },
-  isGroupChat: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  latestMessageId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Messages',
-      key: 'id'
-    }
-  }
-}, {
-  timestamps: true,
-});
-
-// Define Message model
-const Message = sequelize.define('Message', {
-  senderId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
-    allowNull: false
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  chatId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Chats',
-      key: 'id'
-    },
-    allowNull: false
-  }
-}, {
-  timestamps: true
-});
-
-// Define relationships
-User.belongsToMany(Chat, { through: 'ChatUsers' });
-Chat.belongsToMany(User, { through: 'ChatUsers' });
-Chat.hasMany(Message, { foreignKey: 'chatId' });
-Message.belongsTo(User, { foreignKey: 'senderId' });
-Message.belongsTo(Chat, { foreignKey: 'chatId' });
 
 // Sync the models with the database
-sequelize.sync()
-  .then(() => console.log('Models synced with PostgreSQL'))
-  .catch(err => console.error('Error syncing models:', err));
+// Sequelize.sync({ alter: true })
+//   .then(() => console.log('Models synced with PostgreSQL'))
+//   .catch(err => console.error('Error syncing models:', err));
 
 // Create HTTP server using Express app
 const server = http.createServer(app);
