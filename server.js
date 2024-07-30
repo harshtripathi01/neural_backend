@@ -12,6 +12,7 @@ const app = require("./app");
 //   .catch(err => console.error('Error syncing models:', err));
 
 // Create HTTP server using Express app
+
 const server = http.createServer(app);
 
 // Initialize socket.io
