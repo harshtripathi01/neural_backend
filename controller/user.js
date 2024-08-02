@@ -413,6 +413,8 @@ const signupWithEmail = async (data) => {
       email,
       firstName,
       lastName,
+      location,
+      field_expertise
      
     } = data || {};
 
@@ -452,8 +454,8 @@ const signupWithEmail = async (data) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       otp,
-      country,
-     
+      location,
+      field_expertise
     });
 
     const mail_body = mailer_template.signUpBody(newUser);
@@ -783,7 +785,6 @@ const loginVerifyOTP = async (req, res) => {
         // Extract only the necessary fields from the user object
         const {
           _id,
-          currentStep,
           userType,
           firstName,
           lastName,
@@ -797,8 +798,6 @@ const loginVerifyOTP = async (req, res) => {
           token,
           user: {
             _id,
-            currentStep,
-            userType,
             firstName,
             lastName,
             status,
@@ -1267,70 +1266,6 @@ const getUserById = async (request, response) => {
   }
 };
 
-const sendInvite = async (request, response) => {
-  try {
-    const token = request.headers.authorization;
-    const detoken = usersconfig.decodeToken(token);
-    const team_member = request.body; // No need to stringify
-    if (!detoken) {
-      return response.status(400).json({ message: ERROR_MSG.TOKEN.EXPIRED });
-    }
-    const agency_id = detoken.userId;
-    let agency = await User.findById(agency_id);
-    if (!agency) {
-      return response.status(400).json({ message: ERROR_MSG.AGENCY.NOT_FOUND });
-    }
-    // Check if the invite already exists for the resource within the agency's invitedMembers array
-    // const existingInvite = agency.invitedMembers.find(
-    //   (invite) =>
-    //     invite.emailId === team_member.emailId &&
-    //     [INVITE_STATUS.PENDING, INVITE_STATUS.ACCEPTED].includes(invite.status)
-    // );
-    // if (existingInvite) {
-    //   return response
-    //     .status(400)
-    //     .json({ message: ERROR_MSG.USER.INVITE_SEND });
-    // }
-    // Create the invite
-    // const newInvite = {
-    //   resourceName: team_member.resourceName,
-    //   skillExperienceLevel: team_member.skillExperienceLevel,
-    //   designation: team_member.designation,
-    //   emailId: team_member.emailId,
-    //   status: INVITE_STATUS.PENDING,
-    // };
-    // // Save invite details under agency's invitedMembers array
-    // agency.invitedMembers.push(newInvite);
-    // await agency.save();
-
-    const algorithm = "aes-256-cbc";
-    const iv = crypto.randomBytes(16); // Generate a random initialization vector
-    const cipher = crypto.createCipheriv(
-      algorithm,
-      Buffer.from(config.signupSecretKey, "hex"),
-      iv
-    );
-    team_member.companyData = agency;
-    // Convert team_member back to object
-    const team_member_object = JSON.stringify(team_member);
-    let encryptedMember = cipher.update(team_member_object, "utf-8", "hex");
-    encryptedMember += cipher.final("hex");
-    const mail_subject = mailer_template.memberInviteSubject();
-    const mail_body = mailer_template.memberInviteBody(
-      agency,
-      team_member,
-      encryptedMember,
-      iv.toString("hex")
-    );
-    sendemail(team_member.emailId, mail_subject, mail_body);
-    return response.json({
-      message: SUCCESS_MESSAGE.USER.INVITATION_SENT_SUCCESS,
-      data: team_member,
-    });
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
-};
 
 // const resendInvite = async (request, response) => {
 //   try {
@@ -1449,6 +1384,5 @@ module.exports = {
   updateUser,
   getUserById,
   searchUser,
-  sendInvite,
   deleteUser
 };

@@ -29,7 +29,7 @@ const userSchema = mongoose.Schema(
    
     gender: { type: String },
     dob: { type: Date },
-    Location:{type:String},
+    location:{type:String},
     field_expertise:{type:String},
     availability:{type:String}
    
