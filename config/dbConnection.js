@@ -1,16 +1,33 @@
-const { Sequelize } = require('sequelize');
+const dotenv = require("dotenv");
 
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-  host: process.env.DB_HOST,
-  dialect: 'postgres',
-});
+dotenv.config();
 
-sequelize.authenticate()
-  .then(() => {
-    console.log('Connection has been established successfully.');
-  })
-  .catch(err => {
-    console.error('Unable to connect to the database:', err);
-  });
+const mongoose = require("mongoose"); //import mongoose module
 
-module.exports = sequelize;
+function connectMongo() {
+  try {
+    mongoose.connect(process.env.DB_URL, {
+      useNewUrlParser: true,
+
+      useUnifiedTopology: true,
+    });
+
+    mongoose.connection.on("connected", () => {
+      console.log(":::connected to database:::");
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.log("disconnected to database");
+    });
+
+    //event to catch error in the database connection
+
+    mongoose.connection.on("error", (err) => {
+      console.log("error in conn", err);
+    });
+  } catch (error) {
+    console.log("db connection error:::", error);
+  }
+}
+
+module.exports = connectMongo;

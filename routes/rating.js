@@ -1,22 +1,12 @@
-// routes/ratingRoutes.js
+const express = require("express");
+const rating = require("../controller/rating.js")
 
-const express = require('express');
 const router = express.Router();
-const ratingController = require('../controller/rating.js');
+router.post("/createRating", rating.createRating);
+router.get("/getAllRatings", rating.getAllRatings);
+router.get("/getRating/:id", rating.getRating);
+router.put("/updateRating/:id", rating.updateRating);
+router.delete("/deleteRating/:id", rating.deleteRating);
+router.post("/addRatingToProduct/:productId", rating.addRatingToProduct);
 
-// Create a new rating
-router.post('/ratings', ratingController.createRating);
-
-// Get all ratings
-router.get('/ratings', ratingController.getRatings);
-
-// Get a single rating by ID
-router.get('/ratings/:id', ratingController.getRatingById);
-
-// Update a rating
-router.put('/ratings/:id', ratingController.updateRating);
-
-// Delete a rating
-router.delete('/ratings/:id', ratingController.deleteRating);
-
-module.exports = router;
+module.exports = router

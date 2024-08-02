@@ -1,26 +1,17 @@
-require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const mongoose = require('mongoose');
 const socketio = require('socket.io');
-const { Sequelize, DataTypes } = require('sequelize');
+const Message = require("./model/message.js");
 const app = require("./app");
+const config = require("./config/config.js");
 
-const queryRoutes = require('./routes/query.js');
-const ratingRoutes = require('./routes/rating.js');
-const chatRoutes = require('./routes/chat.js');
-const messageRoutes = require('./routes/message.js');
-const { User, Query, Rating } = require('./association.js');
-// Sync the models with the database
-// Sequelize.sync({ alter: true })
-//   .then(() => console.log('Models synced with PostgreSQL'))
-//   .catch(err => console.error('Error syncing models:', err));
+// Connect to MongoDB using Mongoose
+mongoose.connect(process.env.DB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Error connecting to MongoDB:', err));
 
 // Create HTTP server using Express app
-// Use the query and rating routes
-app.use('/api', queryRoutes);
-app.use('/api', ratingRoutes);
-app.use('/api',chatRoutes);
-app.use('/api',messageRoutes);
 const server = http.createServer(app);
 
 // Initialize socket.io
@@ -53,18 +44,24 @@ io.on("connection", (socket) => {
     if (!chat.users) return console.log("chat.users not defined");
 
     chat.users.forEach((user) => {
-      socket.in(user.id).emit("message received", newMessageReceived);
+      socket.in(user._id).emit("message received", newMessageReceived);
+    });
+
+    chat.admin.forEach((admin) => {
+      socket.in(admin._id).emit("message received", newMessageReceived);
     });
 
     try {
-      // Create a new message document using Sequelize
-      const newMessage = await Message.create({
-        senderId: newMessageReceived.sender.id,
+      // Create a new message document using your Mongoose model
+      const newMessage = new Message({
+        sender: newMessageReceived.sender,
         content: newMessageReceived.content,
-        chatId: newMessageReceived.chat.id
+        chat: newMessageReceived.chat._id,
+        // Add other fields as necessary
       });
 
-      console.log('Message saved to database:', newMessage);
+      // Save the message to the database
+      await newMessage.save();
     } catch (error) {
       console.error('Error saving message to database:', error);
     }
@@ -76,7 +73,7 @@ io.on("connection", (socket) => {
 });
 
 // Use the same port for both Express and socket.io
-const port = process.env.APP_PORT || 9001;
+const port = process.env.APP_PORT || 8500;
 server.listen(port, (err) => {
   if (err) {
     console.log("Error in starting server", err);

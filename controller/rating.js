@@ -1,77 +1,190 @@
-// controllers/ratingController.js
+const { request, response } = require("express");
+const { ObjectId } = require("mongodb");
+const Rating = require("../model/rating.js");
+const logger = require("../logger");
+const SUCCESS_MESSAGE = require("../config/SUCCESS_MESSAGE.js");
+const ERROR_MSG = require("../config/ERROR_MSG.js");
+const LOG_MSG = require("../config/LOG_MSG");
 
-const Rating = require('../model/rating.js');
-const User = require('../model/user.js');
 
-// Create a new rating
-exports.createRating = async (req, res) => {
-  const { rating, review, clientId, expertId } = req.body;
+// Function to add a rating to a product
+const addRatingToProduct = async (request, response) => {
   try {
-    const newRating = await Rating.create({ rating, review, clientId, expertId });
-    res.status(201).json(newRating);
+    const productId = request.params.productId;
+
+    // Destructuring required fields from request body
+    const { review_title, client, product, review, rating } = request.body;
+
+    // Create a new rating instance
+    const newRating = new Rating({
+      product: product || productId, // Use productId if product is not provided in the body
+      client: client,
+      review_title: review_title,
+      review: review,
+      rating: rating,
+      is_active: true,
+    });
+
+    // Save the rating to the database
+    const savedRating = await newRating.save();
+
+    // Add the rating to the product's ratings array
+    await Product.findByIdAndUpdate(productId, {
+      $push: { ratings: savedRating._id },
+    });
+
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.ADD_RATING,
+      success: true,
+      data: savedRating,
+      statusCode: 200,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    logger.error(LOG_MSG.RATING.ADD_RATING + ": " + error);
+
+    return response.status(500).json({
+      message: ERROR_MSG.RATING.ADD_RATING,
+      success: false,
+      statusCode: 500,
+    });
   }
 };
-
-// Get all ratings
-exports.getRatings = async (req, res) => {
+const createRating = async (request, response) => {
   try {
-    const ratings = await Rating.findAll({ include: ['client', 'expert'] });
-    res.status(200).json(ratings);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-// Get a single rating by ID
-exports.getRatingById = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const rating = await Rating.findByPk(id, { include: ['client', 'expert'] });
-    if (rating) {
-      res.status(200).json(rating);
-    } else {
-      res.status(404).json({ error: 'Rating not found' });
+    const rating = await Rating(request.body).save();
+    if (!rating) {
+      return response.json({
+        message: ERROR_MSG.RATING.INVALID_RATING,
+        success: false,
+        statuscode: 404,
+      });
     }
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.CREATE,
+      success: true,
+      data: rating,
+      statuscode: 200,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    logger.error(LOG_MSG.RATING.CREATE + ": " + error);
+
+    return response
+      .json({
+        message: ERROR_MSG.RATING.CREATE,
+        success: false,
+        statuscode: 500,
+      })
+      .status(500);
   }
 };
 
-// Update a rating
-exports.updateRating = async (req, res) => {
-  const { id } = req.params;
-  const { rating, review, clientId, expertId } = req.body;
+const getRating = async (request, response) => {
   try {
-    const ratingInstance = await Rating.findByPk(id);
-    if (ratingInstance) {
-      ratingInstance.rating = rating;
-      ratingInstance.review = review;
-      ratingInstance.clientId = clientId;
-      ratingInstance.expertId = expertId;
-      await ratingInstance.save();
-      res.status(200).json(ratingInstance);
-    } else {
-      res.status(404).json({ error: 'Rating not found' });
+    const rating = await Rating.find({
+      _id: new ObjectId(request.params.id),
+    }).lean();
+
+    if (!rating) {
+      return response.json({ message: ERROR_MSG.RATING.INVALID_RATING });
     }
+
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.VIEW,
+      data: rating,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    logger.error(LOG_MSG.RATING.VIEW + ": " + error);
+
+    return response
+      .json({ message: ERROR_MSG.RATING.VIEW, success: false, statuscode: 500 })
+      .status(500);
   }
 };
 
-// Delete a rating
-exports.deleteRating = async (req, res) => {
-  const { id } = req.params;
+const getAllRatings = async (request, response) => {
   try {
-    const rating = await Rating.findByPk(id);
-    if (rating) {
-      await rating.destroy();
-      res.status(204).json();
-    } else {
-      res.status(404).json({ error: 'Rating not found' });
-    }
+    const ratingData = await Rating.find();
+
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.LIST,
+      data: ratingData,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    return response.status(500).json({ message: ERROR_MSG.RATING.LIST });
   }
+};
+
+const updateRating = async (request, response) => {
+  try {
+    const rating = await Rating.findById(request.params.id);
+
+    if (!rating) {
+      return response.json({
+        message: ERROR_MSG.RATING.INVALID_RATING,
+        success: false,
+        statuscode: 404,
+      });
+    }
+
+    Object.assign(rating, request.body);
+
+    const updatedRating = await rating.save();
+
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.UPDATE,
+      success: true,
+      data: updatedRating,
+      statuscode: 200,
+    });
+  } catch (error) {
+    logger.error(LOG_MSG.RATING.UPDATE + ": " + error);
+
+    return response
+      .json({
+        message: ERROR_MSG.RATING.UPDATE,
+        success: false,
+        statuscode: 500,
+      })
+      .status(500);
+  }
+};
+
+const deleteRating = async (request, response) => {
+  try {
+    const rating = await Rating.find({
+      _id: new ObjectId(request.params.id),
+    }).lean();
+
+    if (!rating || rating.length === 0) {
+      return response.json({
+        message: ERROR_MSG.RATING.INVALID_RATING,
+        success: false,
+        statuscode: 404,
+      });
+    }
+
+    await Rating.deleteOne({ _id: new ObjectId(request.params.id) });
+
+    return response.json({
+      message: SUCCESS_MESSAGE.RATING.DELETE,
+      success: true,
+      data: rating,
+      statuscode: 200,
+    });
+  } catch (error) {
+    logger.error(LOG_MSG.RATING.DELETE + ": " + error);
+
+    return response
+      .json({ message: ERROR_MSG.RATING.DELETE, success: false, statuscode: 500 })
+      .status(500);
+  }
+};
+
+module.exports = {
+  createRating,
+  getRating,
+  getAllRatings,
+  updateRating,
+  deleteRating,
+  addRatingToProduct,
 };

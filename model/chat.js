@@ -1,32 +1,16 @@
-// models/Chat.js
+const mongoose = require("mongoose");
 
-const { DataTypes, Model } = require('sequelize');
-const sequelize = require('../config/dbConnection.js');
-
-class Chat extends Model {}
-
-Chat.init({
-  chatName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    trim: true,
+const chatSchema = new mongoose.Schema(
+  {
+    chatName: { type: String, trim: true },
+    isGroupChat: { type: Boolean, default: false },
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    admin: [{ type: mongoose.Schema.Types.ObjectId, ref: "Admin" }],
+    latestMessage: { type: mongoose.Schema.Types.ObjectId, ref: "Message" }
   },
-  isGroupChat: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  latestMessageId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Messages', // name of the target model
-      key: 'id' // key in the target model
-    }
-  }
-}, {
-  sequelize,
-  modelName: 'Chat',
-  tableName: 'chats', // Name of the table in the database
-  timestamps: true // Add timestamps (createdAt and updatedAt)
-});
+  { timestamps: true }
+);
+
+const Chat = mongoose.model("Chat", chatSchema);
 
 module.exports = Chat;

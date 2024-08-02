@@ -10,7 +10,7 @@ router.post("/group", chat.createChat);
 // router.put("/removeFromGroup", chat.removeFromGroup);
 // router.put("/addToGroup", chat.addToGroup);
 // router.get("/getGroupParticipants/:chatId", chat.getGroupParticipants);
-// router.get("/getAdminChats",chat.getAdminChats);
+router.get("/getAdminChats",chat.getAdminChats);
 router.get("/getUserChats",chat.getUserChats);
 router.get("/searchChat",chat.searchChat);
 module.exports = router

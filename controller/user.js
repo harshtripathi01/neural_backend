@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const User = require("../model/user.js");
-const config = require("../config/config.js");
+const config = require("../config/config");
 const usersconfig = require("../utils/user.js");
 const passwordconfig = require("../utils/password.js");
 const constant = require("../config/constant.js");
@@ -9,21 +9,18 @@ const sendemail = require("../utils/mailer.js");
 const sendOTP = require("../utils/sms_sender.js");
 const sms_template = require("../utils/sms_template.js");
 const user = require("../model/user.js");
-// const PaymentDetails = require("../model/paymentDetails.js");
-// const Address = require("../model/address.js");
 const logger = require("../logger");
 const { response } = require("express");
-// const { findByIdAndUpdate } = require("../model/proposals.js");
 const ERROR_MSG = require("../config/ERROR_MSG.js");
 const crypto = require("crypto");
 const { INVITE_STATUS } = require("../config/constant.js");
 const SUCCESS_MESSAGE = require("../config/SUCCESS_MESSAGE.js");
 const LOG_MSG = require("../config/LOG_MSG");
-// const JobTitle = require("../model/jobTitle.js");
 const slugify = require("slugify");
+const mongoose = require("mongoose");
+const fs = require('fs');
+const { createObjectCsvWriter } = require('csv-writer');
 const saltRounds = 10;
-
-
 
 
 
@@ -101,6 +98,48 @@ const resendOtpMobile = async (req, res) => {
   }
 };
 
+// const signup = async (req, res) => {
+//   try {
+//     const login_type = req.body.login_type;
+
+//     let response = null; // Initialize response as null
+//     switch (login_type) {
+//       case constant.EMAIL:
+//         response = await signupWithEmail(req.body); // Await the signupWithEmail function
+
+//         break;
+//       case constant.MOBILE:
+//         response = await signupWithMobile(req.body);
+//         break;
+//       case constant.GOOGLE:
+//         response = await signupWithGoogle(req.body);
+//         break;
+//       case constant.FACEBOOK:
+//         response = await signupWithFacebook(req.body);
+//         break;
+//       default:
+//         return res
+//           .status(400)
+//           .json({
+//             message: ERROR_MSG.USER.UNDEFINED_LOGIN_TYPE,
+//             success: false,
+//           });
+//     }
+//     // Check if response contains an error message
+//     if (response.error) {
+//       return res.status(400).json({ message: response.error, success: false });
+//     }
+//     // If everything is successful, return the response
+//     return res.status(201).json({
+//       message: SUCCESS_MESSAGE.USER.USER_REGISTERED,
+//       success: true,
+//       ...response,
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     return res.status(500).json({ message: error, success: false });
+//   }
+// };
 
 const signup = async (req, res) => {
   try {
@@ -275,6 +314,98 @@ const loginWithEmail = async (data, response) => {
   }
 };
 
+// const signupWithEmail = async (data) => {
+//   try {
+//     const { email } = data || {}; // Make sure to include the 'email' field
+
+//     if (!email) {
+//       return { error: "Email is required" };
+//     }
+
+//     // Check if a user with the provided email already exists in the database
+//     const existingUser = await User.findOne({ email });
+
+//     if (existingUser) {
+//       if (existingUser.account_activated) {
+//         // If the account is activated, return message to login
+//         return { message: "User already exists. Please login.", success: false,statuscode:409};
+//       } else {
+//         // If the account is not activated, remove the existing user
+//         await existingUser.remove();
+//       }
+//     }
+
+//     // Proceed with signup
+//     const {
+//       firstName,
+//       lastName,
+//       email: newEmail,
+//       password,
+//       userType,
+//       country,
+//       parentCompany,
+//     } = data;
+
+//     // Skip the parent company check if the userType is "agency"
+//     if (userType !== "agency" && userType !== "individual") {
+//       // Retrieve the parent company information
+//       const agency = await User.findById(parentCompany);
+//       if (!agency) {
+//         return { error: "Parent company not found" };
+//       }
+
+//       // Check if the email exists in the agency's resourceInfo array
+//       const resourceInfoIndex = agency.resourceInfo.findIndex(
+//         (resource) => resource.emailId === newEmail
+//       );
+
+//       if (resourceInfoIndex !== -1) {
+//         // Remove the matching resourceInfo element
+//         agency.resourceInfo.splice(resourceInfoIndex, 1);
+//         await agency.save();
+//       }
+//     }
+
+//     const user_id = usersconfig.generateUserId();
+//     const otp = usersconfig.generateOTP();
+
+//     // Use the password utility to hash the password
+//     const hashedPassword = await passwordconfig.getEncryptPassword(password);
+
+//     const newUser = new User({
+//       user_id,
+//       firstName,
+//       lastName,
+//       email: newEmail.toLowerCase(),
+//       password: hashedPassword,
+//       otp,
+//       userType,
+//       country,
+//       parentCompany,
+//       status: "pending"
+//       // status: "Profile Created"
+//     });
+
+//     const mail_body = mailer_template.signUpBody(newUser);
+//     const mail_subject = mailer_template.signUpSubject();
+//     sendemail(newEmail, mail_subject, mail_body);
+
+//     const savedUser = await newUser.save();
+
+//     // Return the new OTP, user, and success message
+//     const token = usersconfig.generateToken(newUser._id);
+//     return {
+//       user_id,
+//       token,
+//       savedUser,
+//       message: SUCCESS_MESSAGE.USER.SIGN_UP,
+//       success: true,
+//     };
+//   } catch (error) {
+//     console.error("Error during signup:", error);
+//     return { error: error.message, success: false };
+//   }
+// };
 
 const signupWithEmail = async (data) => {
   try {
@@ -282,8 +413,7 @@ const signupWithEmail = async (data) => {
       email,
       firstName,
       lastName,
-      userType,
-      mobile_number,
+     
     } = data || {};
 
     if (!email) {
@@ -307,51 +437,7 @@ const signupWithEmail = async (data) => {
       }
     }
 
-    let urlSlug; // Declare the urlSlug variable
-
-    // Generate URL slug based on userType
-    if (
-      userType === "individual" ||
-      userType === "agency_developer" ||
-      userType === "agency"
-    ) {
-      // Generate initial URL slug based on first name and last name
-      urlSlug = `${firstName}-${lastName}`;
-
-      // Check if the URL slug already exists in the database
-      let count = 1;
-      let tempSlug = urlSlug;
-      while (await User.findOne({ "entity.urlSlug": tempSlug })) {
-        tempSlug = `${urlSlug}-${count}`; // Append a number to make it unique
-        count++;
-      }
-      urlSlug = tempSlug;
-    }
-    console.log("Generated URL Slug:", urlSlug);
-
-    // Proceed with signup
-    const { password, country } = data;
-
-    // Skip the parent company check if the userType is "agency"
-    if (userType !== "agency" && userType !== "individual") {
-      // Retrieve the parent company information
-      const agency = await User.findById(parentCompany);
-      if (!agency) {
-        return { error: "Parent company not found" };
-      }
-
-      // Check if the email exists in the agency's resourceInfo array
-      const resourceInfoIndex = agency.resourceInfo.findIndex(
-        (resource) => resource.emailId === email
-      );
-
-      if (resourceInfoIndex !== -1) {
-        // Remove the matching resourceInfo element
-        agency.resourceInfo.splice(resourceInfoIndex, 1);
-        await agency.save();
-      }
-    }
-
+   
     const user_id = usersconfig.generateUserId();
     const otp = usersconfig.generateOTP();
     const otpGeneratedAt = new Date();
@@ -362,17 +448,14 @@ const signupWithEmail = async (data) => {
     const newUser = new User({
       user_id,
       firstName,
+      lastName,
       email: email.toLowerCase(),
       password: hashedPassword,
       otp,
-      userType,
       country,
-      "entity.urlSlug": urlSlug, // Assign the generated URL slug
-      otpGeneratedAt,
-      mobile_number,
+     
     });
 
-    
     const mail_body = mailer_template.signUpBody(newUser);
     const mail_subject = mailer_template.signUpSubject();
     sendemail(email, mail_subject, mail_body);
@@ -588,6 +671,68 @@ const verifiedWithMobile = async (req, res) => {
   }
 };
 
+// const loginVerifyOTP = async (req, res) => {
+//   try {
+//     const { otp, userId } = req.body;
+//     const user = await User.findOne({ user_id: userId });
+
+//     if (!user) {
+//       return res.status(404).json({
+//         message: ERROR_MSG.USER.INVALID_USER,
+//         success: false,
+//       });
+//     }
+
+//     // if (user.account_activated) {
+//     //   return res.status(400).json({
+//     //     message: "User is already activated",
+//     //     success: false,
+//     //   });
+//     // }
+
+//     if (user.otp === otp) {
+//       user.account_activated = true;
+//       await user.save();
+
+//       // After successful OTP verification, create a new token
+//       const token = usersconfig.generateToken(user._id);
+//       const mail_body = mailer_template.loginBody(user);
+//       const mail_subject = mailer_template.loginSubject();
+//       sendemail(user.email, mail_subject, mail_body);
+
+//       // Extract only the necessary fields from the user object
+//       const { _id, currentStep , userType, firstName, lastName, status,entity: { urlSlug } } = user;
+
+//       return res.status(200).json({
+//         message: SUCCESS_MESSAGE.USER.ACCOUNT_LOGIN,
+//         success: true,
+//         token,
+//         user: {
+//           _id,
+//           currentStep,
+//           userType,
+//           firstName,
+//           lastName,
+//           status,
+//           "entity.urlSlug": urlSlug,
+//         },
+//       });
+//     } else {
+//       return res.status(400).json({
+//         message: ERROR_MSG.USER.INVALID_OTP_OR_USER_ID,
+//         success: false,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error:", error.message);
+//     return res.status(500).json({
+//       message: error.message,
+//       success: false,
+//     });
+//   }
+// };
+
+// VERIFY_OTP FUNCTION WITH verify_type = SIGNUP / resetpassword
 const loginVerifyOTP = async (req, res) => {
   try {
     const { otp, userId, verify_type } = req.body;
@@ -880,7 +1025,17 @@ const updateUser = async (request, response) => {
     let user;
     if (mongoose.Types.ObjectId.isValid(identifier)) {
       // Update user by Id
-      user = await User.findById(identifier)
+      user = await User.findById(identifier).populate([
+        { path: "educationalInfo.degreeName" },
+        { path: "portfolio.skillAndDeliverables" },
+        { path: "charges.currency" },
+        { path: "resourceInfo.designation" },
+        { path: "skillInfo.skill" },
+        { path: "services.category" },
+        { path: "services.services" },
+        { path: "professionalInfo.jobTitle" },
+        { path: "country" },
+      ]);
     } else {
       // Update user by Slug
       user = await User.findOne({ "entity.urlSlug": identifier }).populate([
@@ -1005,11 +1160,83 @@ const getUserById = async (request, response) => {
     if (mongoose.Types.ObjectId.isValid(identifier)) {
       //get user by Id
       user = await User.findById(identifier)
-       
+        .populate({
+          path: "professionalInfo.jobTitle",
+          model: "Designation",
+        })
+        .populate({
+          path: "educationalInfo.degreeName",
+          model: "Degree",
+        })
+        .populate({
+          path: "portfolio.skillAndDeliverables",
+          model: "Skills",
+        })
+        .populate({
+          path: "charges.currency",
+          model: "Currency",
+        })
+        .populate({
+          path: "skillInfo.skill",
+          model: "Skills",
+        })
+        .populate({
+          path: "services.category",
+          model: "ServiceCategory",
+        })
+        .populate({
+          path: "services.services",
+          model: "Services",
+        })
+        .populate({
+          path: "resourceInfo.designation",
+          model: "Designation",
+        })
+        .populate({
+          path: "country",
+          model: "Country",
+        })
+        .exec();
     } else {
       //get user by Slug
       user = await User.findOne({ "entity.urlSlug": identifier })
-       
+        .populate({
+          path: "professionalInfo.jobTitle",
+          model: "Designation",
+        })
+        .populate({
+          path: "educationalInfo.degreeName",
+          model: "Degree",
+        })
+        .populate({
+          path: "portfolio.skillAndDeliverables",
+          model: "Skills",
+        })
+        .populate({
+          path: "charges.currency",
+          model: "Currency",
+        })
+        .populate({
+          path: "skillInfo.skill",
+          model: "Skills",
+        })
+        .populate({
+          path: "services.category",
+          model: "ServiceCategory",
+        })
+        .populate({
+          path: "services.services",
+          model: "Services",
+        })
+        .populate({
+          path: "resourceInfo.designation",
+          model: "Designation",
+        })
+        .populate({
+          path: "country",
+          model: "Country",
+        })
+        .exec();
     }
 
     if (!user) {
@@ -1040,6 +1267,124 @@ const getUserById = async (request, response) => {
   }
 };
 
+const sendInvite = async (request, response) => {
+  try {
+    const token = request.headers.authorization;
+    const detoken = usersconfig.decodeToken(token);
+    const team_member = request.body; // No need to stringify
+    if (!detoken) {
+      return response.status(400).json({ message: ERROR_MSG.TOKEN.EXPIRED });
+    }
+    const agency_id = detoken.userId;
+    let agency = await User.findById(agency_id);
+    if (!agency) {
+      return response.status(400).json({ message: ERROR_MSG.AGENCY.NOT_FOUND });
+    }
+    // Check if the invite already exists for the resource within the agency's invitedMembers array
+    // const existingInvite = agency.invitedMembers.find(
+    //   (invite) =>
+    //     invite.emailId === team_member.emailId &&
+    //     [INVITE_STATUS.PENDING, INVITE_STATUS.ACCEPTED].includes(invite.status)
+    // );
+    // if (existingInvite) {
+    //   return response
+    //     .status(400)
+    //     .json({ message: ERROR_MSG.USER.INVITE_SEND });
+    // }
+    // Create the invite
+    // const newInvite = {
+    //   resourceName: team_member.resourceName,
+    //   skillExperienceLevel: team_member.skillExperienceLevel,
+    //   designation: team_member.designation,
+    //   emailId: team_member.emailId,
+    //   status: INVITE_STATUS.PENDING,
+    // };
+    // // Save invite details under agency's invitedMembers array
+    // agency.invitedMembers.push(newInvite);
+    // await agency.save();
+
+    const algorithm = "aes-256-cbc";
+    const iv = crypto.randomBytes(16); // Generate a random initialization vector
+    const cipher = crypto.createCipheriv(
+      algorithm,
+      Buffer.from(config.signupSecretKey, "hex"),
+      iv
+    );
+    team_member.companyData = agency;
+    // Convert team_member back to object
+    const team_member_object = JSON.stringify(team_member);
+    let encryptedMember = cipher.update(team_member_object, "utf-8", "hex");
+    encryptedMember += cipher.final("hex");
+    const mail_subject = mailer_template.memberInviteSubject();
+    const mail_body = mailer_template.memberInviteBody(
+      agency,
+      team_member,
+      encryptedMember,
+      iv.toString("hex")
+    );
+    sendemail(team_member.emailId, mail_subject, mail_body);
+    return response.json({
+      message: SUCCESS_MESSAGE.USER.INVITATION_SENT_SUCCESS,
+      data: team_member,
+    });
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+};
+
+// const resendInvite = async (request, response) => {
+//   try {
+//     const token = request.headers.authorization;
+//     const detoken = usersconfig.decodeToken(token);
+//     const team_member = request.body; // No need to stringify
+
+//     if (!detoken) {
+//       return response.status(400).json({ message: ERROR_MSG.TOKEN.EXPIRED });
+//     }
+//     const agency_id = detoken.userId;
+//     const agency = await User.findById(agency_id);
+
+//     if (!agency) {
+//       return response.status(400).json({ message: ERROR_MSG.AGENCY.NOT_FOUND });
+//     }
+
+//     // Check if the invite exists for the resource
+//     const existingInvite = await InvitedMember.findOne({
+//       emailId: team_member.emailId,
+//       status: { $in: [INVITE_STATUS.PENDING, INVITE_STATUS.ACCEPTED] }
+//     });
+
+//     if (!existingInvite) {
+//       return response.status(400).json({ message: "Invite not found" });
+//     }
+
+//     if (existingInvite.status === INVITE_STATUS.ACCEPTED) {
+//       return response.status(400).json({ message: "Invite already accepted" });
+//     }
+
+//     const algorithm = 'aes-256-cbc';
+//     const iv = crypto.randomBytes(16); // Generate a random initialization vector
+//     const cipher = crypto.createCipheriv(algorithm, Buffer.from(config.signupSecretKey, 'hex'), iv);
+
+//     // Convert existingInvite object to string
+//     const existingInviteString = JSON.stringify(existingInvite);
+
+//     let encryptedInvite = cipher.update(existingInviteString, 'utf-8', 'hex');
+//     encryptedInvite += cipher.final('hex');
+
+//     const mail_subject = mailer_template.memberInviteSubject();
+//     const mail_body = mailer_template.memberInviteBody(agency, existingInvite, encryptedInvite, iv.toString('hex'));
+
+//     sendemail(existingInvite.emailId, mail_subject, mail_body);
+
+//     return response.json({
+//       message: "Invitation resent successfully",
+//       data: existingInvite
+//     });
+//   } catch (error) {
+//     return response.status(500).json({ message: error.message });
+//   }
+// };
 
 const searchUser = async (request, response) => {
   try {
@@ -1090,8 +1435,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   signup,
   resendOtpEmail,
@@ -1106,5 +1449,6 @@ module.exports = {
   updateUser,
   getUserById,
   searchUser,
+  sendInvite,
   deleteUser
 };

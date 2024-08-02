@@ -1,17 +1,43 @@
 const express = require("express");
+const user = require("../controller/user.js");
+ 
 const router = express.Router();
-const { signup, resendOtpEmail, resendOtpMobile, verifyOTP } = require("../controller/user.js");
+ 
+// Route for user registration
+router.post("/createSignup", user.signup);
+ 
+// Route for handling forgot password
+router.post("/forgotPassword", user.forgotPassword);
+ 
+// Route for handling change password
+router.post("/changePassword", user.changePassword);
+ 
+// Route for handling update profile
+router.put("/updateProfile", user.updateProfile);
+ 
+// Route for handling verifyOTP
+// router.post("/verifyOTP", user.verifyOTP);
+ 
+// Route for handling loginVerifyOTP
+router.post("/loginVerifyOTP", user.loginVerifyOTP);
+ 
+router.post("/resendOtpEmail",user.resendOtpEmail);
+ 
+router.post("/resendOtpMobile",user.resendOtpMobile);
+ 
+router.get("/getAllUser",user.getAllUser);
+ 
+router.post("/login",user.login);
 
-// Signup route
-router.post("/signup", signup);
+router.put('/updateUser/:identifier',user.updateUser);
 
-// Resend OTP via email route
-router.post("/resend-otp-email", resendOtpEmail);
+router.get('/getUserById/:identifier',user.getUserById);
 
-// Resend OTP via mobile route
-router.post("/resend-otp-mobile", resendOtpMobile);
+router.get("/search", user.searchUser);
 
-// Verify OTP route (assuming you have a verifyOTP function)
-router.post("/verify-otp", verifyOTP);
+router.post("/sendInvite",user.sendInvite);
+
+router.delete("/deleteUser/:id",user.deleteUser);
+
 
 module.exports = router;

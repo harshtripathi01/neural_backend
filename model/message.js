@@ -1,36 +1,19 @@
-// models/Message.js
+const mongoose = require('mongoose');
 
-const { DataTypes, Model } = require('sequelize');
-const sequelize = require('../config/dbConnection.js');
+const messageSchema = new mongoose.Schema(
+  {
+    sender: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'senderModel' },
+    senderModel: { type: String, required: true, enum: ['User', 'Admin'] },
+    content: { type: String, trim: true },
+    chat: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat' },
+    file:[{type:String}],
+    template: { type: mongoose.Schema.Types.ObjectId, ref: 'Template' },
 
-class Message extends Model {}
-
-Message.init({
-  senderId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Users', // name of the target model
-      key: 'id' // key in the target model
-    },
-    allowNull: false
+    // Add other fields if needed
   },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  chatId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'Chats', // name of the target model
-      key: 'id' // key in the target model
-    },
-    allowNull: false
-  }
-}, {
-  sequelize,
-  modelName: 'Message',
-  tableName: 'messages', // Name of the table in the database
-  timestamps: true // Add timestamps (createdAt and updatedAt)
-});
+  { timestamps: true }
+);
+
+const Message = mongoose.model('Message', messageSchema);
 
 module.exports = Message;
