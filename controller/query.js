@@ -11,27 +11,28 @@ const postQuestion = async (req, res) => {
   try {
     const token = req.headers.authorization;
     const detoken = jwt.decode(token);
-    const clientId = detoken.userId;
-
-    const { question } = req.body;
+    const clientId = detoken.adminId;
+     console.log(detoken)
+    const { question ,image} = req.body;
 
     const newQuery = new Query({
       question: question,
+      image: image,
       clientId: clientId
     });
 
     const savedQuery = await newQuery.save();
 
     return res.json({
-      message: SUCCESS_MESSAGE.QUERY.POST,
+      message: "query created",
       success: true,
       data: savedQuery,
       statuscode: 200
     });
   } catch (error) {
-    logger.error(LOG_MSG.QUERY.POST + ": " + error);
+    logger.error(error);
     return res.status(500).json({
-      message: ERROR_MSG.QUERY.POST,
+      message: error,
       success: false,
       statuscode: 500
     });
@@ -52,7 +53,7 @@ const answerQuestion = async (req, res) => {
 
     if (!query) {
       return res.status(404).json({
-        message: ERROR_MSG.QUERY.NOT_FOUND,
+        message: "not found",
         success: false,
         statuscode: 404
       });
@@ -68,15 +69,15 @@ const answerQuestion = async (req, res) => {
     const updatedQuery = await query.save();
 
     return res.json({
-      message: SUCCESS_MESSAGE.QUERY.ANSWER,
+      message:"posted",
       success: true,
       data: updatedQuery,
       statuscode: 200
     });
   } catch (error) {
-    logger.error(LOG_MSG.QUERY.ANSWER + ": " + error);
+    logger.error( error);
     return res.status(500).json({
-      message: ERROR_MSG.QUERY.ANSWER,
+      message: error,
       success: false,
       statuscode: 500
     });

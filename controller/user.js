@@ -1,6 +1,13 @@
 const bcrypt = require("bcrypt");
 const User = require("../model/user.js");
+const jwtconfig = require("../config/config")
+const jwt = require("jsonwebtoken");
 const config = require("../config/config");
+const fetch = (...args) =>
+import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
+const { ObjectId } = require("mongodb");
 const usersconfig = require("../utils/user.js");
 const passwordconfig = require("../utils/password.js");
 const constant = require("../config/constant.js");
@@ -8,56 +15,43 @@ const mailer_template = require("../utils/mailer_template.js");
 const sendemail = require("../utils/mailer.js");
 const sendOTP = require("../utils/sms_sender.js");
 const sms_template = require("../utils/sms_template.js");
-const user = require("../model/user.js");
-const logger = require("../logger");
-const { response } = require("express");
-const ERROR_MSG = require("../config/ERROR_MSG.js");
-const crypto = require("crypto");
-const { INVITE_STATUS } = require("../config/constant.js");
-const SUCCESS_MESSAGE = require("../config/SUCCESS_MESSAGE.js");
-const LOG_MSG = require("../config/LOG_MSG");
-const slugify = require("slugify");
-const mongoose = require("mongoose");
 const fs = require('fs');
 const { createObjectCsvWriter } = require('csv-writer');
-const saltRounds = 10;
-
-
+const Admin = require("../model/admin.js");
+const { response } = require("express");
+const saltRounds = 10; 
+const Rating = require("../model/rating.js")
 
 const resendOtpEmail = async (req, res) => {
-  const email = req.body.email;
+  const { email } = req.body;
 
   try {
-    // Check if the user with the provided email exists
-    const user = await User.findOne({ email });
+    // Find the user by userId
+    const user = await User.findOne({ email: email });
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: ERROR_MSG.USER.INVALID_USER, success: false });
+      return res.status(404).json({ message: "User not found", success: false });
     }
 
     // Generate a new OTP
     const otp = usersconfig.generateOTP();
 
-    // Update the user's OTP in the database
+    // Update the user's OTP and OTP generation time in the database
     user.otp = otp;
-    user.otpGeneratedAt = new Date(); // Set otpGeneratedAt to the current time
+    user.otpGeneratedAt = new Date(); // Update the OTP generation time
     await user.save();
 
-    // Create the email content for resending OTP
-    const mail_body = mailer_template.resendOtpBody(user, otp);
+    // Create the email content for resetting OTP
+    const mail_body = mailer_template.resendOtpBody(user);
     const mail_subject = mailer_template.resendOtpSubject();
 
     // Send the new OTP to the user via email
-    sendemail(email, mail_subject, mail_body);
+    sendemail(user.email, mail_subject, mail_body);
 
-    return res
-      .status(200)
-      .json({ message: SUCCESS_MESSAGE.USER.OTP_SUCCESSFUL, success: true });
+    return res.status(200).json({ message: "OTP reset successfully", success: true });
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({ message: error, success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 
@@ -69,9 +63,7 @@ const resendOtpMobile = async (req, res) => {
     const user = await User.findOne({ mobile_number });
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User not found", success: false });
+      return res.status(404).json({ message: "User not found", success: false });
     }
 
     // Generate a new OTP
@@ -85,66 +77,18 @@ const resendOtpMobile = async (req, res) => {
     const sms_body = sms_template.getResendOtpMessage(user);
 
     // Send the new OTP to the user via email
-    sendOTP(mobile_number, sms_body, otp);
+    sendOTP(mobile_number, sms_body,otp);
 
-    return res
-      .status(200)
-      .json({ message: "OTP resent successfully", success: true });
+    return res.status(200).json({ message: "OTP resent successfully", success: true });
   } catch (error) {
     console.error("Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
-
-// const signup = async (req, res) => {
-//   try {
-//     const login_type = req.body.login_type;
-
-//     let response = null; // Initialize response as null
-//     switch (login_type) {
-//       case constant.EMAIL:
-//         response = await signupWithEmail(req.body); // Await the signupWithEmail function
-
-//         break;
-//       case constant.MOBILE:
-//         response = await signupWithMobile(req.body);
-//         break;
-//       case constant.GOOGLE:
-//         response = await signupWithGoogle(req.body);
-//         break;
-//       case constant.FACEBOOK:
-//         response = await signupWithFacebook(req.body);
-//         break;
-//       default:
-//         return res
-//           .status(400)
-//           .json({
-//             message: ERROR_MSG.USER.UNDEFINED_LOGIN_TYPE,
-//             success: false,
-//           });
-//     }
-//     // Check if response contains an error message
-//     if (response.error) {
-//       return res.status(400).json({ message: response.error, success: false });
-//     }
-//     // If everything is successful, return the response
-//     return res.status(201).json({
-//       message: SUCCESS_MESSAGE.USER.USER_REGISTERED,
-//       success: true,
-//       ...response,
-//     });
-//   } catch (error) {
-//     console.error("Error:", error);
-//     return res.status(500).json({ message: error, success: false });
-//   }
-// };
-
 const signup = async (req, res) => {
+
   try {
     const login_type = req.body.login_type;
-
     let response = null; // Initialize response as null
     switch (login_type) {
       case constant.EMAIL:
@@ -160,324 +104,287 @@ const signup = async (req, res) => {
         response = await signupWithFacebook(req.body);
         break;
       default:
-        return res
-          .status(400)
-          .json({
-            message: ERROR_MSG.USER.UNDEFINED_LOGIN_TYPE,
-            success: false,
-          });
+        return res.status(400).json({ message: "Undefined login_type", success: false });
     }
-
     // Check if response contains an error message
     if (response.error) {
       return res.status(400).json({ message: response.error, success: false });
     }
-
-    // Determine the correct HTTP status code to return
-    const statusCode = response.statuscode || 201; // Default to 201 Created if not specified
-
     // If everything is successful, return the response
-    return res.status(statusCode).json({
-      message: response.message || SUCCESS_MESSAGE.USER.USER_REGISTERED,
-      success: response.success !== undefined ? response.success : true,
-      ...response,
-    });
+    return res.status(201).json({ message: "User registered successfully", success: true, ...response });
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({ message: error.message || "Internal Server Error", success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 
-
-const login = async (req, res) => {
+const signupWithGoogle = async (data) => {
   try {
-    const login_type = req.body.login_type;
-    let response = null; // Initialize response as null
-    switch (login_type) {
-      case constant.EMAIL:
-        response = await loginWithEmail(req.body); // Await the loginWithEmail function
+    const { tokenId } = data;
 
-        break;
-      case constant.MOBILE:
-        response = await loginWithMobile(req.body);
-        break;
-      case constant.GOOGLE:
-        response = await loginWithGoogle(req.body);
-        break;
-      case constant.FACEBOOK:
-        response = await loginWithFacebook(req.body);
-        break;
-      default:
-        return res
-          .status(400)
-          .json({
-            message: ERROR_MSG.USER.UNDEFINED_LOGIN_TYPE,
-            success: false,
-          });
-    }
-    // Check if response contains an error message
-    if (response.error) {
-      return res.status(400).json({ message: response.error, success: false });
-    }
-    // If everything is successful, return the response
-    return res.status(201).json({
-      message: SUCCESS_MESSAGE.USER.USER_REGISTERED_LOGIN,
-      success: true,
-      ...response,
+    // Verify the Google token
+    const ticket = await client.verifyIdToken({
+      idToken: tokenId,
+      audience: config.GOOGLE_CLIENT_ID,
     });
+
+    const payload = ticket.getPayload();
+    const { email} = payload;
+
+    // Check if the user with the provided email already exists in the database
+    let user = await User.findOne({ email });
+    const user_id = usersconfig.generateUserId();
+
+    // If user does not exist, create a new user
+    if (!user) {
+      const newUser = new User({
+        email,
+        account_activated: true,
+        password: "googleauth-system",
+        user_id                            // Google login automatically activates account
+      });
+
+      // Save the new user
+      user = await newUser.save();
+
+      // Generate a token for the new user
+      const token = usersconfig.generateToken(user._id);
+
+      // Send a welcome email (optional)
+      const mail_body = mailer_template.loginBody(user);
+      const mail_subject = mailer_template.loginSubject();
+      sendemail(email, mail_subject, mail_body);
+
+      // Return success response with token and user data
+      return { token, savedUser:user, message: 'User registered and logged in successfully' };
+    }
+
+    // If user exists, generate a token for the existing user
+    const token = usersconfig.generateToken(user._id);
+
+    // Return success response with token and user data
+    return { token,savedUser:user, message: 'User logged in successfully' };
   } catch (error) {
-    logger.error(LOG_MSG.USER.ERROR_401 + ": " + error);
-    return res
-      .status(401)
-      .json({ message: ERROR_MSG.USER.ERROR_401, success: false });
+    console.error('Error:', error);
+    return { error: 'Internal server error', success: false };
   }
 };
-
-const loginWithEmail = async (data, response) => {
+const signupWithFacebook = async (data) => {
   try {
-    const { email, password } = data || {}; // Make sure to include the 'email' field
+      const { accessToken, userFbID, userEmail } = data;
 
-    if (!email) {
-      return response.status(400).json({ error: "Email is required" });
-    }
+      // Fetch user data from Facebook using the provided access token and user ID
+      const res = await fetch(
+          `https://graph.facebook.com/v14.0/${userFbID}?fields=id,first_name,last_name,email&access_token=${accessToken}`
+      );
+      const json = await res.json();
 
-    // Check if a user with the provided email already exists in the database
-    const existingUser = await User.findOne({ email });
+      // Check if the user's Facebook ID matches the provided userFbID
+      if (json.id === userFbID) {
+          // Check if a user with the provided email already exists in the database
+          let user = await User.findOne({ email: json.email });
 
-    if (existingUser) {
-      // If the user exists, update their OTP and check if the account is activated
-      const otp = usersconfig.generateOTP();
-      existingUser.otp = otp;
+          if (user) {
+              // If the user exists, update their information
+              user.firstName = json.first_name;
+              user.email = json.email;
+              user.facebookID = json.id;
+              user.email_verified = true; // Assuming Facebook login automatically verifies email
+              user.account_activated = true; // Assuming Facebook login automatically activates account
+              await user.save();
 
-      // Check if otpGeneratedAt exists, otherwise set it to null (for existing users)
-      existingUser.otpGeneratedAt = existingUser.otpGeneratedAt || null;
+              // Generate JWT token for the user
+              const token = usersconfig.generateToken(user._id);
 
-      await existingUser.save();
+              // Send welcome email to the user
+              const mail_body = mailer_template.loginBody(user);
+              const mail_subject = mailer_template.loginSubject();
+              sendemail(user.email, mail_subject, mail_body);
 
-      if (existingUser.account_activated == true) {
-        try {
-          const passwordMatch = await bcrypt.compare(
-            password,
-            existingUser.password
-          );
-          if (!passwordMatch) {
-            return response
-              .status(404)
-              .json({
-                message: ERROR_MSG.USER.INCORRECT_PASSWORD,
-                success: false,
+              // Return success response with token and user data
+              return {
+                  message: "User logged in successfully",
+                  success: true,
+                  code: 200,
+                  token,
+                  data: {
+                      userId: user.user_id,
+                      _id: user._id,
+                      userEmail: user.email,
+                      fullName: `${json.first_name} ${json.last_name}`,
+                  },
+              };
+          } else {
+            const user_id = usersconfig.generateUserId();
+
+              // If the user does not exist, create a new user
+              user = await User.create({
+                  firstName: json.first_name,
+                  email: json.email,
+                  facebookID: json.id,
+                  email_verified: true, // Assuming Facebook login automatically verifies email
+                  account_activated: true, // Assuming Facebook login automatically activates account
+                  password: "facebookauth-system",
+                  user_id  // No password for Facebook login
               });
+
+              // Generate JWT token for the new user
+              const token = usersconfig.generateToken(user._id);
+
+              // Send welcome email to the user
+              const mail_body = mailer_template.welcomeEmail(user);
+              const mail_subject = mailer_template.welcomeSubject();
+              sendemail(user.email, mail_subject, mail_body);
+
+              // Return success response with token and user data
+              return {
+                  message: "User registered and logged in successfully",
+                  success: true,
+                  code: 200,
+                  token,
+                  data: {
+                      _id: user._id,
+                      userEmail: user.email,
+                      fullName: `${json.first_name} ${json.last_name}`,
+                  },
+              };
           }
-          // Continue with successful authentication logic
-        } catch (error) {
-          console.error("Error comparing passwords:", error);
-          return response
-            .status(500)
-            .json({ message: "Internal server error", success: false });
-        }
-        // If the account is activated, return the new OTP and user
-        const token = usersconfig.generateToken(existingUser._id);
-        const user = existingUser;
-        const otpGeneratedAt = new Date();
-        existingUser.otpGeneratedAt = otpGeneratedAt;
-
-        await existingUser.save();
-
-        const mail_body = mailer_template.loginVerifyOtpBody(user);
-        const mail_subject = mailer_template.loginVerifyOtpSubject();
-        sendemail(email, mail_subject, mail_body);
-
-        return {
-          user_id: existingUser.user_id,
-          existingUser,
-          token,
-          otp,
-          message: "Login successful",
-          otpGeneratedAt,
-        };
       } else {
-        // If the account is not activated
-        return response
-          .status(403)
-          .json({ statuscode: 403, message: "Your account is not verified" });
+          // If the user's Facebook ID does not match the provided userFbID
+          return {
+              message: "You are not authorized!",
+              success: false,
+              code: 401,
+          };
       }
-    } else {
-      return response
-        .status(404)
-        .json({ statuscode: 404, message: "User not found" });
-    }
   } catch (error) {
-    logger.error(LOG_MSG.USER.ERROR_401 + ": " + error);
-    return response
-      .status(401)
-      .json({ error: ERROR_MSG.USER.ERROR_401, success: false });
+      // If an error occurs during the process
+      console.log({ error });
+      return {
+          message: "Something went wrong!",
+          success: false,
+          code: 500,
+          data: error,
+      };
   }
 };
 
-// const signupWithEmail = async (data) => {
-//   try {
-//     const { email } = data || {}; // Make sure to include the 'email' field
-
-//     if (!email) {
-//       return { error: "Email is required" };
-//     }
-
-//     // Check if a user with the provided email already exists in the database
-//     const existingUser = await User.findOne({ email });
-
-//     if (existingUser) {
-//       if (existingUser.account_activated) {
-//         // If the account is activated, return message to login
-//         return { message: "User already exists. Please login.", success: false,statuscode:409};
-//       } else {
-//         // If the account is not activated, remove the existing user
-//         await existingUser.remove();
-//       }
-//     }
-
-//     // Proceed with signup
-//     const {
-//       firstName,
-//       lastName,
-//       email: newEmail,
-//       password,
-//       userType,
-//       country,
-//       parentCompany,
-//     } = data;
-
-//     // Skip the parent company check if the userType is "agency"
-//     if (userType !== "agency" && userType !== "individual") {
-//       // Retrieve the parent company information
-//       const agency = await User.findById(parentCompany);
-//       if (!agency) {
-//         return { error: "Parent company not found" };
-//       }
-
-//       // Check if the email exists in the agency's resourceInfo array
-//       const resourceInfoIndex = agency.resourceInfo.findIndex(
-//         (resource) => resource.emailId === newEmail
-//       );
-
-//       if (resourceInfoIndex !== -1) {
-//         // Remove the matching resourceInfo element
-//         agency.resourceInfo.splice(resourceInfoIndex, 1);
-//         await agency.save();
-//       }
-//     }
-
-//     const user_id = usersconfig.generateUserId();
-//     const otp = usersconfig.generateOTP();
-
-//     // Use the password utility to hash the password
-//     const hashedPassword = await passwordconfig.getEncryptPassword(password);
-
-//     const newUser = new User({
-//       user_id,
-//       firstName,
-//       lastName,
-//       email: newEmail.toLowerCase(),
-//       password: hashedPassword,
-//       otp,
-//       userType,
-//       country,
-//       parentCompany,
-//       status: "pending"
-//       // status: "Profile Created"
-//     });
-
-//     const mail_body = mailer_template.signUpBody(newUser);
-//     const mail_subject = mailer_template.signUpSubject();
-//     sendemail(newEmail, mail_subject, mail_body);
-
-//     const savedUser = await newUser.save();
-
-//     // Return the new OTP, user, and success message
-//     const token = usersconfig.generateToken(newUser._id);
-//     return {
-//       user_id,
-//       token,
-//       savedUser,
-//       message: SUCCESS_MESSAGE.USER.SIGN_UP,
-//       success: true,
-//     };
-//   } catch (error) {
-//     console.error("Error during signup:", error);
-//     return { error: error.message, success: false };
-//   }
-// };
 
 const signupWithEmail = async (data) => {
   try {
-    const {
-      email,
-      firstName,
-      lastName,
-      location,
-      field_expertise
-     
-    } = data || {};
+    const { email, password, firstName, lastName, country, gender, dob, location, field_expertise, availability, mobile_number } = data; // Make sure to include the necessary fields
 
     if (!email) {
       return { error: "Email is required" };
     }
 
     // Check if a user with the provided email already exists in the database
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).populate('country');
 
     if (existingUser) {
-      if (!existingUser.account_activated) {
-        // If the existing user has not activated their account (OTP not verified), delete the existing user
-        await existingUser.deleteOne();
+      // If the user exists, update their OTP and check if the account is activated
+      const otp = usersconfig.generateOTP();
+      existingUser.otp = otp;
+      existingUser.otpGeneratedAt = new Date();
+      await existingUser.save();
+
+      if (existingUser.account_activated === true) {
+        // If the account is activated, return the new OTP and user
+        try {
+          const passwordMatch = await bcrypt.compare(password, existingUser.password);
+          if (!passwordMatch) {
+            return { message: 'Authentication failed', success: false };
+          }
+          // Continue with successful authentication logic
+        } catch (error) {
+          console.error('Error comparing passwords:', error);
+          return { message: 'Please enter the correct password', success: false };
+        }
+
+        const token = usersconfig.generateToken(existingUser._id);
+        const user = existingUser;
+        const mail_body = mailer_template.loginBody(user);
+        const mail_subject = mailer_template.loginSubject();
+        sendemail(email, mail_subject, mail_body);
+
+        return { user_id: existingUser.user_id, token, savedUser: existingUser, otp };
       } else {
-        // If account is activated, return message that user already exists
-        return {
-          message: "User already exists. Please login.",
-          success: false,
-          statuscode: 409,
-        };
+        // If the account is not activated, delete the existing user and create a new one
+        await User.deleteOne({ _id: existingUser._id }); // Remove the existing user
+
+        // Create a new user
+        const user_id = usersconfig.generateUserId();
+        const hashedPassword = await passwordconfig.getEncryptPassword(password);
+        const newUser = new User({
+          user_id,
+          firstName,
+          lastName,
+          email,
+          password: hashedPassword,
+          otp,
+          otpGeneratedAt: new Date(),
+          country,
+          gender,
+          dob,
+          location,
+          field_expertise,
+          availability,
+          mobile_number
+        });
+
+        // Save the new user
+        const savedUser = await newUser.save();
+
+        // Use the resendOTP function to send a new OTP to the newly created user
+        const resendOtpResult = await resendOtpEmail(req, res, newUser); // Pass newUser to resendOtpEmail function
+        if (resendOtpResult.success) {
+          return { user_id: newUser.user_id, ...resendOtpResult, success: true };
+        } else {
+          return resendOtpResult; // Return the result from the resendOTP function
+        }
       }
+    } else {
+      // If the user does not exist, proceed with signup
+      const user_id = usersconfig.generateUserId();
+      const otp = usersconfig.generateOTP();
+      const otpGeneratedAt = new Date();
+      const hashedPassword = await passwordconfig.getEncryptPassword(password);
+
+      const newUser = new User({
+        user_id,
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        otp,
+        otpGeneratedAt,
+        country,
+        gender,
+        dob,
+        location,
+        field_expertise,
+        availability,
+        mobile_number
+      });
+
+      const mail_body = mailer_template.signUpBody(newUser);
+      const mail_subject = mailer_template.signUpSubject();
+      sendemail(email, mail_subject, mail_body);
+
+      const savedUser = await newUser.save();
+
+      // Return the new OTP, user, and success message
+      const token = usersconfig.generateToken(newUser._id);
+      const detoken = jwt.decode(token);
+      return { user_id, detoken, token, savedUser, otp, message: "User registered successfully", success: true };
     }
-
-   
-    const user_id = usersconfig.generateUserId();
-    const otp = usersconfig.generateOTP();
-    const otpGeneratedAt = new Date();
-
-    // Use the password utility to hash the password
-    const hashedPassword = await passwordconfig.getEncryptPassword(password);
-
-    const newUser = new User({
-      user_id,
-      firstName,
-      lastName,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      otp,
-      location,
-      field_expertise
-    });
-
-    const mail_body = mailer_template.signUpBody(newUser);
-    const mail_subject = mailer_template.signUpSubject();
-    sendemail(email, mail_subject, mail_body);
-
-    const savedUser = await newUser.save();
-
-    // Return the new OTP, user, and success message
-    const token = usersconfig.generateToken(newUser._id);
-    return {
-      user_id,
-      token,
-      savedUser,
-      message: SUCCESS_MESSAGE.USER.SIGN_UP,
-      success: true,
-    };
   } catch (error) {
-    console.error("Error during signup:", error);
-    return { error: error.message, success: false };
+    console.error("Error:", error);
+    return { error: "Internal server error", success: false };
   }
 };
+
+
 
 const signupWithMobile = async (data) => {
   try {
@@ -498,28 +405,19 @@ const signupWithMobile = async (data) => {
 
       if (existingUser.account_activated === true) {
         // If the account is activated, return the new OTP and user
-        const token = usersconfig.generateToken();
+        const token = usersconfig.generateToken(existingUser._id);
         const user = existingUser;
 
         // Send SMS with the new OTP
         const sms_body = sms_template.getLoginMessage(user);
         sendOTP(mobile_number, sms_body);
 
-        return {
-          user_id: existingUser.user_id,
-          token,
-          savedUser: existingUser,
-          otp,
-        };
+        return { user_id: existingUser.user_id, token, savedUser: existingUser, otp };
       } else {
         // If the account is not activated, use the resendOTP function to send a new OTP to the existing user
         const resendOtpResult = await resendOtpMobile(existingUser);
         if (resendOtpResult.success) {
-          return {
-            user_id: existingUser.user_id,
-            ...resendOtpResult,
-            success: true,
-          };
+          return { user_id: existingUser.user_id, ...resendOtpResult, success: true };
         } else {
           return resendOtpResult; // Return the result from the resendOTP function
         }
@@ -549,15 +447,8 @@ const signupWithMobile = async (data) => {
       const savedUser = await newUser.save();
 
       // Return the new OTP, user, and success message
-      const token = usersconfig.generateToken();
-      return {
-        user_id,
-        token,
-        savedUser,
-        otp,
-        message: "User registered successfully",
-        success: true,
-      };
+      const token = usersconfig.generateToken(newUser._id);
+      return { user_id, token, savedUser, otp, message: "User registered successfully", success: true };
     }
   } catch (error) {
     console.error("Error:", error);
@@ -571,37 +462,34 @@ const verifyOTP = async (req, res) => {
     let response = null; // Initialize response as null
     switch (otp_type) {
       case constant.EMAIL:
-        return verifiedWithEmail(req, res); // Await the signupWithEmail function
-
+        response = await verifiedWithEmail(req.body); // Await the signupWithEmail function
         break;
       case constant.MOBILE:
-        return verifiedWithMobile(req, res);
+        response = await verifiedWithMobile(req.body);
         break;
       case constant.LOGIN:
-        return loginVerifyOTP(req, res);
+        response = await loginVerifyOTP(req.body);
         break;
       default:
-        return res
-          .status(400)
-          .json({ message: "Undefined verified_type", success: false });
+        return res.status(400).json({ message: "Undefined verified_type", success: false });
     }
     // Check if response contains an error message
-
+    if (response.error) {
+      return res.status(400).json({ message: response.error, success: false });
+    }
     // If everything is successful, return the response
+    return res.status(201).json({ message: "token verified successfully", success: true, ...response });
   } catch (error) {
     console.error("Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
+
 };
 
 const verifiedWithEmail = async (req, res) => {
   try {
     const { otp, userId } = req.body;
-
     const user = await User.findOne({ user_id: userId });
-
     if (!user) {
       return res
         .status(404)
@@ -615,13 +503,14 @@ const verifiedWithEmail = async (req, res) => {
     }
 
     if (user.otp === otp) {
-      user.account_activated = true;
-      user.email_verified = true;
+      user.account_activated = true;  //account activate true when user enter correct otp
+      user.email_verified = true; //account email_verified true when user verified email 
       await user.save();
-
-      return res
-        .status(201)
-        .json({ message: "Token verified successfully", success: true, user });
+      return res.status(200).json({
+        message: "Account Verified And activated successfully  ",
+        success: true,
+        user: user,
+      });
     } else {
       return res
         .status(400)
@@ -631,7 +520,7 @@ const verifiedWithEmail = async (req, res) => {
     console.error("Error:", error.message);
     return res
       .status(500)
-      .json({ message: "Internal Server Error", success: false });
+      .json({ message: "Internal server error", success: false });
   }
 };
 
@@ -652,8 +541,8 @@ const verifiedWithMobile = async (req, res) => {
     }
 
     if (user.otp === otp) {
-      user.account_activated = true; //account activate true when user enter correct otp
-      user.mobile_number_verified = true; //account mobile_verified true when user verified phonenumber
+      user.account_activated = true;  //account activate true when user enter correct otp
+      user.mobile_number_verified = true; //account mobile_verified true when user verified phonenumber 
       await user.save();
       return res.status(200).json({
         message: "Account Verified And activated successfully  ",
@@ -673,73 +562,13 @@ const verifiedWithMobile = async (req, res) => {
   }
 };
 
-// const loginVerifyOTP = async (req, res) => {
-//   try {
-//     const { otp, userId } = req.body;
-//     const user = await User.findOne({ user_id: userId });
-
-//     if (!user) {
-//       return res.status(404).json({
-//         message: ERROR_MSG.USER.INVALID_USER,
-//         success: false,
-//       });
-//     }
-
-//     // if (user.account_activated) {
-//     //   return res.status(400).json({
-//     //     message: "User is already activated",
-//     //     success: false,
-//     //   });
-//     // }
-
-//     if (user.otp === otp) {
-//       user.account_activated = true;
-//       await user.save();
-
-//       // After successful OTP verification, create a new token
-//       const token = usersconfig.generateToken(user._id);
-//       const mail_body = mailer_template.loginBody(user);
-//       const mail_subject = mailer_template.loginSubject();
-//       sendemail(user.email, mail_subject, mail_body);
-
-//       // Extract only the necessary fields from the user object
-//       const { _id, currentStep , userType, firstName, lastName, status,entity: { urlSlug } } = user;
-
-//       return res.status(200).json({
-//         message: SUCCESS_MESSAGE.USER.ACCOUNT_LOGIN,
-//         success: true,
-//         token,
-//         user: {
-//           _id,
-//           currentStep,
-//           userType,
-//           firstName,
-//           lastName,
-//           status,
-//           "entity.urlSlug": urlSlug,
-//         },
-//       });
-//     } else {
-//       return res.status(400).json({
-//         message: ERROR_MSG.USER.INVALID_OTP_OR_USER_ID,
-//         success: false,
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error:", error.message);
-//     return res.status(500).json({
-//       message: error.message,
-//       success: false,
-//     });
-//   }
-// };
-
-// VERIFY_OTP FUNCTION WITH verify_type = SIGNUP / resetpassword
 const loginVerifyOTP = async (req, res) => {
+
   try {
+
     const { otp, userId, verify_type } = req.body;
     const user = await User.findOne({ user_id: userId });
-
+    console.log("user",user);
     if (!user) {
       return res.status(404).json({
         message: "User not found",
@@ -751,20 +580,9 @@ const loginVerifyOTP = async (req, res) => {
       // Verify OTP for signup process
       const otpExpirationTime = 10 * 60 * 1000; // 10 minutes in milliseconds
       if (user.otp === otp) {
-        // const otpTimestamp = user.otpGeneratedAt.getTime(); // Get the OTP generation time in milliseconds
-        const otpTimestamp = user.otpGeneratedAt
-          ? user.otpGeneratedAt.getTime()
-          : null; // Get the OTP generation time in milliseconds
+        const otpTimestamp = user.otpGeneratedAt.getTime(); // Get the OTP generation time in milliseconds
         const currentTimestamp = new Date().getTime(); // Get the current time in milliseconds
-
-        //   if (otpTimestamp && (currentTimestamp - otpTimestamp <= otpExpirationTime)) {
-        //   // OTP has expired
-        //   return res.status(400).json({
-        //     message: "OTP has expired",
-        //     success: false,
-        //   });
-        // }
-
+      
         if (currentTimestamp - otpTimestamp > otpExpirationTime) {
           // OTP has expired
           return res.status(400).json({
@@ -772,38 +590,17 @@ const loginVerifyOTP = async (req, res) => {
             success: false,
           });
         }
-
+      
         // OTP is valid and not expired
         user.account_activated = true;
         await user.save();
         // After successful OTP verification, create a new token
         const token = usersconfig.generateToken(user._id);
-        const mail_body = mailer_template.loginBody(user);
-        const mail_subject = mailer_template.loginSubject();
-        sendemail(user.email, mail_subject, mail_body);
-
-        // Extract only the necessary fields from the user object
-        const {
-          _id,
-          userType,
-          firstName,
-          lastName,
-          status,
-          entity: { urlSlug },
-        } = user;
-
         return res.status(200).json({
           message: "Account login successfully",
           success: true,
           token,
-          user: {
-            _id,
-            firstName,
-            lastName,
-            status,
-            "entity.urlSlug": urlSlug,
-          },
-          // savedUser: user,
+          savedUser: user,
         });
       } else {
         return res.status(400).json({
@@ -811,42 +608,32 @@ const loginVerifyOTP = async (req, res) => {
           success: false,
         });
       }
-    } else if (verify_type === "resetpassword") {
+    } else 
+    
+       if (verify_type === "resetpassword") {
       // Verify OTP for password reset process
       const otpExpirationTime = 10 * 60 * 1000; // 10 minutes in milliseconds
 
       if (user.otp === otp) {
-        // const otpTimestamp = user.otpGeneratedAt.getTime(); // Get the OTP generation time in milliseconds
-        const otpTimestamp = user.otpGeneratedAt
-          ? user.otpGeneratedAt.getTime()
-          : null; // Get the OTP generation time in milliseconds
+        const otpTimestamp = user.otpGeneratedAt.getTime(); // Get the OTP generation time in milliseconds
         const currentTimestamp = new Date().getTime(); // Get the current time in milliseconds
-        console.log(currentTimestamp);
-
-        //   if (otpTimestamp && (currentTimestamp - otpTimestamp <= otpExpirationTime)) {
-        //   // OTP has expired
-
-        //   return res.status(400).json({
-        //     message: "OTP has expired",
-        //     success: false,
-        //   });
-        // }
-
+           console.log(currentTimestamp);
         if (currentTimestamp - otpTimestamp > otpExpirationTime) {
           // OTP has expired
+
           return res.status(400).json({
             message: "OTP has expired",
             success: false,
           });
         }
-
+      
         // OTP is valid and not expired
         user.change_password = true;
         await user.save();
         // After successful OTP verification, create a new token
         //const token = usersconfig.generateToken(user._id);
         return res.status(200).json({
-          message: "reset password otp verified Successfully!",
+          message: "reset password otp verify...",
           success: true,
           savedUser: user,
         });
@@ -866,6 +653,7 @@ const loginVerifyOTP = async (req, res) => {
   }
 };
 
+
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -883,13 +671,11 @@ const forgotPassword = async (req, res) => {
 
     // Check if user exists
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User not found", success: false });
+      return res.status(404).json({ message: "User not found", success: false });
     }
 
     // Generate OTP
-    const otp = usersconfig.generateOTP(); // Implement your OTP generation function here
+    const otp =  usersconfig.generateOTP(); // Implement your OTP generation function here
     const otpGeneratedAt = new Date();
 
     // Update user's OTP
@@ -902,20 +688,14 @@ const forgotPassword = async (req, res) => {
     const mail_subject = mailer_template.forgetSubject();
     sendemail(email, mail_subject, mail_body);
 
-    return res
-      .status(200)
-      .json({
-        message: "OTP sent to the user's email",
-        success: true,
-        user: user,
-      });
+
+    return res.status(200).json({ message: "OTP sent to the user's email", success: true , user: user});
   } catch (error) {
     console.error("Error:", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
+
 
 const changePassword = async (req, res) => {
   try {
@@ -926,29 +706,17 @@ const changePassword = async (req, res) => {
 
     // Check if the user exists
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User not found", success: false });
+      return res.status(404).json({ message: "User not found", success: false });
     }
 
     // Check if the user is allowed to change the password
     if (!user.change_password) {
-      return res
-        .status(403)
-        .json({
-          message: "User is not allowed to change password",
-          success: false,
-        });
+      return res.status(403).json({ message: "User is not allowed to change password", success: false });
     }
 
     // Check if the new password matches the confirmation password
     if (newPassword !== confirmPassword) {
-      return res
-        .status(400)
-        .json({
-          message: "New password and confirm password do not match",
-          success: false,
-        });
+      return res.status(400).json({ message: "New password and confirm password do not match", success: false });
     }
 
     // Hash the new password
@@ -959,25 +727,18 @@ const changePassword = async (req, res) => {
     // Save the updated user
     await user.save();
 
-    // Send OTP to user's email
-    //  const mail_body = mailer_template.changePassword(user);
-    //  const mail_subject = mailer_template.changeSubject();
-    //  sendemail(email, mail_subject, mail_body);
-
-    return res
-      .status(200)
-      .json({ message: "Password changed successfully", success: true });
+    return res.status(200).json({ message: "Password changed successfully", success: true });
   } catch (error) {
     console.error("Error:", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", success: false });
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 };
 
+
+
 const updateProfile = async (req, res) => {
   try {
-    const { token, newProfileData } = req.body;
+    const {token, newProfileData } = req.body;
     const user_id = usersconfig.decodeToken(token);
     await User.findByIdAndUpdate(user_id, newProfileData);
 
@@ -986,387 +747,158 @@ const updateProfile = async (req, res) => {
       .json({ message: "Profile updated successfully", success: true });
   } catch (error) {
     console.error("Error:", error.message);
-    return res.status(500).json({ message: error, success: false });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false });
   }
 };
+
+
+
+
+
+
+  
+const getUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Find the user by ID
+    const user = await User.findById(userId)
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Find ratings where the user is the expert
+    const ratings = await Rating.find({ expert: userId }).populate('client');
+
+    return res.json({
+      data: {
+        user,
+        ratings
+      },
+      message: "User profile",
+      success: true,
+      statuscode: 200
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ message: error.message, success: false, statuscode: 500 });
+  }
+};
+const updateUser = async (request, response) => {
+  try {
+    const user = await User.findById(request.params.id); // Adjust 'location' to match your schema
+    console.log("user",user);
+    if (!user) {
+      return response.json({
+        message: "user not found",
+        success: false,
+        statuscode: 404,
+        user: user
+      });
+    }
+
+    Object.assign(user, request.body);
+
+    const updatedUser = await user.save();
+    const populatedUser = await User.findById(updatedUser._id); // Populate 'location' after saving
+
+    return response.json({
+      message: "success",
+      success: true,
+      data: populatedUser,
+      statuscode: 200,
+    });
+  } catch (error) {
+    console.log("error", error.message);
+
+    return response
+      .json({ message: error.message, success: false, statuscode: 500 })
+      .status(500);
+  }
+};
+
 
 const getAllUser = async (request, response) => {
   try {
-    const page = parseInt(request.query.page) || 1;
-    const limit = parseInt(request.query.limit) || 10;
+      const page = parseInt(request.query.page) || 1;
+      const limit = parseInt(request.query.limit) || 10;
+      const skip = (page - 1) * limit;
 
-    const skip = (page - 1) * limit;
+      const user = await User.find()
+          .skip(skip)
+          .limit(limit);
 
-    const userData = await User.find()
-      .sort({ _id: -1 }) // Sort by ID in descending order
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: "services",
-        populate: [{ path: "category" }, { path: "services" }],
+      const totalusers = await User.countDocuments();
+
+ 
+
+      return response.json({
+          data: user,
+          totalusers: totalusers,
+          statuscode:200,
+          message:"all user data"
       });
-    // .populate('services.category')
-    // .populate('services.services');
 
-    const totalUser = await User.countDocuments();
-
-    return response.json({ data: userData, totalUser });
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+      console.error(error);
+      return response.status(500).send('Internal Server Error');
   }
 };
 
-const updateUser = async (request, response) => {
+const searchUser = async (request, response) => {
   try {
-    const identifier = request.params.identifier;
-    console.log("Identifier:", identifier);
+    const query = request.query.q; // Get the search query from request query parameters
 
-    let user;
-    if (mongoose.Types.ObjectId.isValid(identifier)) {
-      // Update user by Id
-      user = await User.findById(identifier).populate([
-        { path: "educationalInfo.degreeName" },
-        { path: "portfolio.skillAndDeliverables" },
-        { path: "charges.currency" },
-        { path: "resourceInfo.designation" },
-        { path: "skillInfo.skill" },
-        { path: "services.category" },
-        { path: "services.services" },
-        { path: "professionalInfo.jobTitle" },
-        { path: "country" },
-      ]);
-    } else {
-      // Update user by Slug
-      user = await User.findOne({ "entity.urlSlug": identifier }).populate([
-        { path: "educationalInfo.degreeName" },
-        { path: "portfolio.skillAndDeliverables" },
-        { path: "charges.currency" },
-        { path: "resourceInfo.designation" },
-        { path: "skillInfo.skill" },
-        { path: "services.category" },
-        { path: "services.services" },
-        { path: "professionalInfo.jobTitle" },
-        { path: "country" },
-      ]);
-    }
+    // Search for users based on partial matches in firstName, email, and mobile_number fields
+    const users = await User.find({
+      $or: [
+        { firstName: { $regex: query, $options: 'i' } }, // Case-insensitive search for firstName
+        { email: { $regex: query, $options: 'i' } }, // Case-insensitive search for email
+        { mobile_number: { $regex: query, $options: 'i' } }, // Case-insensitive search for mobile_number
+      ],
+    }).lean();
 
-    if (!user) {
-      return response.status(404).json({
-        message: ERROR_MSG.USER.INVALID_USER,
+    return response.json({ data: users });
+  } catch (error) {
+    console.log("error", error.message);
+
+    return response
+      .json({ message: error, success: false, statuscode: 500 })
+      .status(500);
+  }
+};
+const deleteUser = async (request, response) => {
+  try {
+    const user = await User.find({
+      _id: new ObjectId(request.params.id),
+    }).lean();
+
+    if (!user || user.length === 0) {
+      return response.json({
+        message: "user not found",
         success: false,
         statuscode: 404,
       });
     }
 
-    // Update user fields
-    Object.assign(user, request.body);
-
-    // Update for payment
-    if (request.body.bankAccountNumber) {
-      if (user.paymentDetails) {
-        // Update existing payment details
-        Object.assign(user.paymentDetails, {
-          bankAccountNumber: request.body.bankAccountNumber || "",
-          confirmBankAccountNumber: request.body.bankAccountNumber || "",
-          IFSCCode: request.body.IFSCCode || "",
-          branchName: request.body.branchName || "",
-          accountHolderName: request.body.accountHolderName || "",
-        });
-        await user.paymentDetails.save();
-      } else {
-        // Create new payment details
-        const paymentDetails = {
-          bankAccountNumber: request.body.bankAccountNumber || "",
-          confirmBankAccountNumber: request.body.bankAccountNumber || "",
-          IFSCCode: request.body.IFSCCode || "",
-          branchName: request.body.branchName || "",
-          accountHolderName: request.body.accountHolderName || "",
-        };
-        const newPaymentDetails = await PaymentDetails.create(paymentDetails);
-        user.paymentDetails = newPaymentDetails._id;
-      }
-    }
-
-    // Update for address
-    if (request.body.houseNumber) {
-      if (user.address) {
-        // Update existing address
-        Object.assign(user.address, {
-          houseNumber: request.body.houseNumber || "",
-          streetName: request.body.streetName || "",
-          landmark: request.body.landmark || "",
-          pinCode: request.body.pinCode || "",
-          city: request.body.city || "",
-          state: request.body.state || "",
-        });
-        await user.address.save();
-      } else {
-        // Create new address
-        const addressDetails = {
-          houseNumber: request.body.houseNumber || "",
-          streetName: request.body.streetName || "",
-          landmark: request.body.landmark || "",
-          pinCode: request.body.pinCode || "",
-          city: request.body.city || "",
-          state: request.body.state || "",
-        };
-        const newAddress = await Address.create(addressDetails);
-        user.address = newAddress._id;
-      }
-    }
-
-    const updatedUser = await user.save();
-
-    // Populate necessary fields again to include updated references
-    await updatedUser.populate([
-      { path: "educationalInfo.degreeName" },
-      { path: "portfolio.skillAndDeliverables" },
-      { path: "charges.currency" },
-      { path: "resourceInfo.designation" },
-      { path: "skillInfo.skill" },
-      { path: "services.category" },
-      { path: "services.services" },
-      { path: "professionalInfo.jobTitle" },
-      { path: "country" },
-    ]);
-
-    // Format dates before sending the response
-    const formattedUser = {
-      ...user.toObject(),
-      dob: user.dob ? user.dob.toISOString().split("T")[0] : null,
-      // Add more date fields here if necessary
-    };
+    await User.deleteOne({ _id: new ObjectId(request.params.id) });
 
     return response.json({
-      message: SUCCESS_MESSAGE.USER.UPDATE,
+      message: "deleted succsfull",
       success: true,
-      data: formattedUser,
+      data: user,
       statuscode: 200,
     });
   } catch (error) {
-    return response
-      .status(500)
-      .json({ message: error.message, success: false, statuscode: 500 });
-  }
-};
-
-const getUserById = async (request, response) => {
-  try {
-    const identifier = request.params.identifier;
-    console.log("Identifier:", identifier);
-
-    let user;
-    if (mongoose.Types.ObjectId.isValid(identifier)) {
-      //get user by Id
-      user = await User.findById(identifier)
-        .populate({
-          path: "professionalInfo.jobTitle",
-          model: "Designation",
-        })
-        .populate({
-          path: "educationalInfo.degreeName",
-          model: "Degree",
-        })
-        .populate({
-          path: "portfolio.skillAndDeliverables",
-          model: "Skills",
-        })
-        .populate({
-          path: "charges.currency",
-          model: "Currency",
-        })
-        .populate({
-          path: "skillInfo.skill",
-          model: "Skills",
-        })
-        .populate({
-          path: "services.category",
-          model: "ServiceCategory",
-        })
-        .populate({
-          path: "services.services",
-          model: "Services",
-        })
-        .populate({
-          path: "resourceInfo.designation",
-          model: "Designation",
-        })
-        .populate({
-          path: "country",
-          model: "Country",
-        })
-        .exec();
-    } else {
-      //get user by Slug
-      user = await User.findOne({ "entity.urlSlug": identifier })
-        .populate({
-          path: "professionalInfo.jobTitle",
-          model: "Designation",
-        })
-        .populate({
-          path: "educationalInfo.degreeName",
-          model: "Degree",
-        })
-        .populate({
-          path: "portfolio.skillAndDeliverables",
-          model: "Skills",
-        })
-        .populate({
-          path: "charges.currency",
-          model: "Currency",
-        })
-        .populate({
-          path: "skillInfo.skill",
-          model: "Skills",
-        })
-        .populate({
-          path: "services.category",
-          model: "ServiceCategory",
-        })
-        .populate({
-          path: "services.services",
-          model: "Services",
-        })
-        .populate({
-          path: "resourceInfo.designation",
-          model: "Designation",
-        })
-        .populate({
-          path: "country",
-          model: "Country",
-        })
-        .exec();
-    }
-
-    if (!user) {
-      return response
-        .status(404)
-        .json({ message: ERROR_MSG.USER.INVALID_USER, success: false });
-    }
-
-    // Format dates before sending the response
-    const formattedUser = {
-      ...user.toObject(),
-      dob: user.dob ? user.dob.toISOString().split("T")[0] : null,
-      // Add more date fields here if necessary
-    };
+    console.log("error", error.message);
 
     return response
-      .status(200)
-      .json({
-        message: SUCCESS_MESSAGE.USER.VIEW,
-        success: true,
-        data: formattedUser,
-      });
-  } catch (error) {
-    console.error("Error:", error.message);
-    return response
-      .status(500)
-      .json({ message: error.message, success: false });
-  }
-};
-
-
-// const resendInvite = async (request, response) => {
-//   try {
-//     const token = request.headers.authorization;
-//     const detoken = usersconfig.decodeToken(token);
-//     const team_member = request.body; // No need to stringify
-
-//     if (!detoken) {
-//       return response.status(400).json({ message: ERROR_MSG.TOKEN.EXPIRED });
-//     }
-//     const agency_id = detoken.userId;
-//     const agency = await User.findById(agency_id);
-
-//     if (!agency) {
-//       return response.status(400).json({ message: ERROR_MSG.AGENCY.NOT_FOUND });
-//     }
-
-//     // Check if the invite exists for the resource
-//     const existingInvite = await InvitedMember.findOne({
-//       emailId: team_member.emailId,
-//       status: { $in: [INVITE_STATUS.PENDING, INVITE_STATUS.ACCEPTED] }
-//     });
-
-//     if (!existingInvite) {
-//       return response.status(400).json({ message: "Invite not found" });
-//     }
-
-//     if (existingInvite.status === INVITE_STATUS.ACCEPTED) {
-//       return response.status(400).json({ message: "Invite already accepted" });
-//     }
-
-//     const algorithm = 'aes-256-cbc';
-//     const iv = crypto.randomBytes(16); // Generate a random initialization vector
-//     const cipher = crypto.createCipheriv(algorithm, Buffer.from(config.signupSecretKey, 'hex'), iv);
-
-//     // Convert existingInvite object to string
-//     const existingInviteString = JSON.stringify(existingInvite);
-
-//     let encryptedInvite = cipher.update(existingInviteString, 'utf-8', 'hex');
-//     encryptedInvite += cipher.final('hex');
-
-//     const mail_subject = mailer_template.memberInviteSubject();
-//     const mail_body = mailer_template.memberInviteBody(agency, existingInvite, encryptedInvite, iv.toString('hex'));
-
-//     sendemail(existingInvite.emailId, mail_subject, mail_body);
-
-//     return response.json({
-//       message: "Invitation resent successfully",
-//       data: existingInvite
-//     });
-//   } catch (error) {
-//     return response.status(500).json({ message: error.message });
-//   }
-// };
-
-const searchUser = async (request, response) => {
-  try {
-    const searchTerm = request.query.search;
-
-    if (!searchTerm || searchTerm.length < 2) {
-      return response
-        .status(400)
-        .json({ message: "Search term must be at least 2 characters long" });
-    }
-
-    const regexSearchTerm = searchTerm
-      .split("")
-      .map((char) => `(?=.*${char})`)
-      .join("");
-
-    const userData = await User.find({
-      firstName: { $regex: `^${regexSearchTerm}`, $options: "i" },
-    });
-
-    return response.json({ data: userData });
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
-};
-
-const deleteUser = async (req, res) => {
-  try {
-    const deletedUser = await User.findByIdAndDelete(req.params.id);
-    if (!deletedUser) {
-      return res.status(404).json({
-        message: ERROR_MSG.USER.INVALID_USER,
-        success: false,
-      });
-    }
-    res.status(200).json({
-      message: SUCCESS_MESSAGE.USER.DELETE,
-      success: true,
-      data: deletedUser,
-    });
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    res.status(500).json({
-      message: error,
-      success: false,
-      error: error.message,
-    });
+      .json({ message: error, success: false, statuscode: 500 })
+      .status(500);
   }
 };
 
@@ -1379,10 +911,9 @@ module.exports = {
   forgotPassword,
   loginVerifyOTP,
   resendOtpMobile,
-  getAllUser,
-  login,
+  getUser,
   updateUser,
-  getUserById,
+  getAllUser,
   searchUser,
   deleteUser
 };

@@ -27,15 +27,13 @@ router.post("/resendOtpMobile",user.resendOtpMobile);
  
 router.get("/getAllUser",user.getAllUser);
  
-router.post("/login",user.login);
 
-router.put('/updateUser/:identifier',user.updateUser);
+router.get("/getUser/:id",user.getUser);
+router.put('/updateUser/:id',user.updateUser);
 
-router.get('/getUserById/:identifier',user.getUserById);
 
 router.get("/search", user.searchUser);
 
-router.post("/sendInvite",user.sendInvite);
 
 router.delete("/deleteUser/:id",user.deleteUser);
 

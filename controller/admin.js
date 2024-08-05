@@ -12,7 +12,7 @@ const ERROR_MSG = require("../config/ERROR_MSG.js");
 
 const signup = async (req, res) => {
   try {
-    const { email, password, phone } = req.body;
+    const { firstName,lastName,email, password, phone } = req.body;
 
     // Check if the email already exists
     const existingAdmin = await Admin.findOne({ email });
@@ -32,6 +32,8 @@ const signup = async (req, res) => {
     const otpGeneratedAt = new Date();
 
     const newAdmin = new Admin({
+      firstName,
+      lastName,
       email,
       phone,
       password: hashedPassword,

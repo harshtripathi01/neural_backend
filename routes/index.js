@@ -16,4 +16,6 @@ router.use("/admin",admin);
 router.use("/user",user);
 router.use("/upload",uploadImage);
 router.use("/rating",rating);
+
 module.exports =router;
+

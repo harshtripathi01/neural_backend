@@ -25,8 +25,8 @@ const userSchema = mongoose.Schema(
     account_activated: { type: Boolean, default: false },
     mobile_otp: { type: String },
     email_otp: { type: String },
-    country: { type: mongoose.Schema.Types.ObjectId, ref: "Country" },
-   
+    country: { type: String },
+    zipCode:{type:String},
     gender: { type: String },
     dob: { type: Date },
     location:{type:String},

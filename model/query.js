@@ -4,6 +4,7 @@ const querySchema = new mongoose.Schema(
   {
     question:{type:String},
     clientId:{type:mongoose.Schema.Types.ObjectId, ref: 'Admin'},
+    image:{type:String},
     answer:[{
           solution:{type:String},
           file:{type:String},
