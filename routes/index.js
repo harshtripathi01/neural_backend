@@ -7,8 +7,11 @@ const uploadImage = require("./uploadImage.js");
 const chat = require("./chat.js");
 const message = require("./message.js");
 const query = require("./query.js");
-
+const comment = require("./comment.js");
+const post = require("./post.js");
 const router = express.Router();
+router.use("/comment",comment);
+router.use("/post",post);
 router.use("/query",query);
 router.use("/chat",chat);
 router.use("/message",message);
