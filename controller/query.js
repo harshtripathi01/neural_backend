@@ -104,15 +104,15 @@ const getAllQuestions = async (req, res) => {
     const queries = await Query.find().populate('clientId', 'username').populate('answer.expert', 'username');
 
     return res.json({
-      message: SUCCESS_MESSAGE.QUERY.LIST,
+      message: "true",
       success: true,
       data: queries,
       statuscode: 200
     });
   } catch (error) {
-    logger.error(LOG_MSG.QUERY.LIST + ": " + error);
+    // logger.error(LOG_MSG.QUERY.LIST + ": " + error);
     return res.status(500).json({
-      message: ERROR_MSG.QUERY.LIST,
+      message: "false",
       success: false,
       statuscode: 500
     });
